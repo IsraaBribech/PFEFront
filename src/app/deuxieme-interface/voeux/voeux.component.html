@@ -1,0 +1,753 @@
+<div class="dashboard-container">
+  <!-- Afficher un indicateur de chargement -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Chargement des données...</p>
+    </div>
+  </div>
+
+  <!-- Afficher un message d'erreur si le chargement a échoué -->
+  <div class="error-message" *ngIf="loadingError">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>Une erreur est survenue lors du chargement des données. Veuillez rafraîchir la page.</p>
+    <button class="btn-primary" (click)="loadAllData()">Réessayer</button>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">E</div>
+        <span class="logo-text">EduSpace</span>
+      </div>
+      <!-- Transformation en bouton tout en gardant la structure -->
+      <button class="profile-button" routerLink="/ensprofil">
+        <div class="enseignant-avatar">{{ enseignantName[0] }}</div>
+        <div class="enseignant-details">
+          <h3>{{ enseignantName }}</h3>
+          <p>{{ enseignantEmail }}</p>
+        </div>
+      </button>
+    </div>
+    
+    <!-- Navigation dans la sidebar -->
+    <nav class="sidebar-nav">
+      <ul>
+        <li routerLink="/dashboard" routerLinkActive="active">
+          <i class="fas fa-home"></i>
+          <span>Tableau de bord</span>
+        </li>
+        
+        <!-- Menu Cours avec sous-menus -->
+        <li (click)="toggleCourSubmenu($event)" [class.active]="showCourSubmenu">
+          <i class="fas fa-book"></i>
+          <span>Cour</span>
+          <i class="fas fa-chevron-down submenu-icon" [class.rotate]="showCourSubmenu"></i>
+        </li>
+        
+        <!-- Sous-menu pour Cours -->
+        <div class="submenu" [class.visible]="showCourSubmenu">
+          <!-- Option Semestre 1 -->
+          <li (click)="toggleSemestreSubmenu($event, 1)" [class.active]="showSemestreSubmenu[1]">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Semestre 1</span>
+            <i class="fas fa-chevron-down submenu-icon" [class.rotate]="showSemestreSubmenu[1]"></i>
+          </li>
+          
+          <!-- Sous-menu pour Semestre 1 -->
+          <div class="submenu nested" [class.visible]="showSemestreSubmenu[1]">
+            <li *ngFor="let matiere of matieresSemestre1" 
+                (click)="navigateToMatiere($event, matiere.id, 1)" 
+                class="matiere-menu-item">
+              <div class="matiere-menu-icon" [ngClass]="{'cours-type': matiere.type === 'Cours', 'td-type': matiere.type === 'TD', 'tp-type': matiere.type === 'TP'}">
+                <i class="fas" [ngClass]="{'fa-book': matiere.type === 'Cours', 'fa-pencil-alt': matiere.type === 'TD', 'fa-laptop-code': matiere.type === 'TP'}"></i>
+              </div>
+              <div class="matiere-menu-content">
+                <span class="matiere-menu-title">{{ matiere.nom }}</span>
+                <div class="matiere-menu-details">
+                  <span class="matiere-menu-niveau">{{ matiere.niveau }}</span>
+                  <span class="matiere-menu-type">{{ matiere.type }}</span>
+                </div>
+              </div>
+            </li>
+          </div>
+          
+          <!-- Option Semestre 2 -->
+          <li (click)="toggleSemestreSubmenu($event, 2)" [class.active]="showSemestreSubmenu[2]">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Semestre 2</span>
+            <i class="fas fa-chevron-down submenu-icon" [class.rotate]="showSemestreSubmenu[2]"></i>
+          </li>
+          
+          <!-- Sous-menu pour Semestre 2 -->
+          <div class="submenu nested" [class.visible]="showSemestreSubmenu[2]">
+            <li *ngFor="let matiere of matieresSemestre2" 
+                (click)="navigateToMatiere($event, matiere.id, 2)" 
+                class="matiere-menu-item">
+              <div class="matiere-menu-icon" [ngClass]="{'cours-type': matiere.type === 'Cours', 'td-type': matiere.type === 'TD', 'tp-type': matiere.type === 'TP'}">
+                <i class="fas" [ngClass]="{'fa-book': matiere.type === 'Cours', 'fa-pencil-alt': matiere.type === 'TD', 'fa-laptop-code': matiere.type === 'TP'}"></i>
+              </div>
+              <div class="matiere-menu-content">
+                <span class="matiere-menu-title">{{ matiere.nom }}</span>
+                <div class="matiere-menu-details">
+                  <span class="matiere-menu-niveau">{{ matiere.niveau }}</span>
+                  <span class="matiere-menu-type">{{ matiere.type }}</span>
+                </div>
+              </div>
+            </li>
+          </div>
+        </div>
+        
+        <!-- Autres options du menu -->
+        <li routerLink="/devoir" routerLinkActive="active">
+          <i class="fas fa-tasks"></i>
+          <span>Devoir</span>
+        </li>
+        <li routerLink="/quiz" routerLinkActive="active">
+          <i class="fas fa-question-circle"></i>
+          <span>Quiz</span>
+        </li>
+        <li routerLink="/message" routerLinkActive="active">
+          <i class="fas fa-envelope"></i>
+          <span>Message</span>
+        </li>
+        <li routerLink="/voeux" routerLinkActive="active">
+          <i class="fas fa-list-alt"></i>
+          <span>Voeux</span>
+        </li>
+      </ul>
+    </nav>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="content-header">
+      <div class="header-title">
+        <h1>Liste des voeux d'enseignement</h1>
+      </div>
+      <div class="header-actions">
+        <div class="search-bar">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Rechercher...">
+        </div>
+        <!-- Ajout de l'icône de notification -->
+        <div class="notification-icon" (click)="toggleNotifications($event)">
+          <i class="fas fa-bell"></i>
+          <span class="badge" *ngIf="messageStats.unread">{{ messageStats.unread }}</span>
+          
+          <!-- Dropdown des notifications -->
+          <div class="notification-dropdown" *ngIf="showNotifications">
+            <div class="notification-header">
+              <h3>Notifications</h3>
+              <button class="mark-all-read" (click)="markAllAsRead()">
+                <i class="fas fa-check-double"></i> Tout marquer comme lu
+              </button>
+            </div>
+            <div class="notification-list">
+              <div *ngIf="notifications.length === 0" class="no-notifications">
+                <i class="fas fa-bell-slash"></i>
+                <p>Aucune notification</p>
+              </div>
+              <div 
+                *ngFor="let notification of notifications" 
+                class="notification-item" 
+                [class.unread]="!notification.read"
+                (click)="markAsRead(notification)"
+              >
+                <div class="notification-avatar">
+                  {{ notification.avatar }}
+                </div>
+                <div class="notification-content">
+                  <div class="notification-sender">{{ notification.sender }}</div>
+                  <div class="notification-message">{{ notification.message }}</div>
+                  <div class="notification-time">{{ notification.time }}</div>
+                </div>
+                <button class="notification-delete" (click)="deleteNotification(notification.id, $event)">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+            <div class="notification-footer">
+              <a routerLink="/message">Voir tous les messages</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="charge-horaire-card">
+      <div class="charge-horaire-header">
+        <h2><i class="fas fa-clock"></i> Charge Horaire - {{ grade }}</h2>
+      </div>
+      <div class="charge-horaire-content">
+        <div class="charge-horaire-info">
+          <div class="charge-info-item">
+            <span class="info-label">Charge de base:</span>
+            <span class="info-value">{{ chargeHoraire.baseHebdo }} heures</span>
+          </div>
+          <div class="charge-info-item">
+            <span class="info-label">Charge supplémentaire:</span>
+            <span class="info-value">{{ chargeHoraire.supplementaireHebdo }} heures</span>
+          </div>
+          <div class="charge-info-item total">
+            <span class="info-label">Charge totale:</span>
+            <span class="info-value">{{ chargeHoraire.totalHebdo }} heures</span>
+          </div>
+        </div>
+        
+        <div class="charge-horaire-progress">
+          <div class="progress-label">
+            <span>Utilisation: {{ getChargeHoraireHebdomadaire() | number:'1.1-1' }} / {{ chargeHoraire.totalHebdo }} heures</span>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar" 
+                 [ngStyle]="{'width': getChargeHorairePourcentage() + '%'}"
+                 [ngClass]="getProgressBarClass()"></div>
+          </div>
+          <div class="limit-warning" *ngIf="getChargeHoraireHebdomadaire() > 12">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>Attention: Vous approchez la limite de {{ chargeHoraire.totalHebdo }} heures!</span>
+          </div>
+        </div>
+        
+        <!-- Structure pour les détails des heures -->
+        <div class="charge-horaire-details">
+          <h3>Détails des heures</h3>
+          <div class="details-grid">
+            <div class="details-row header-row">
+              <div class="details-cell">Type</div>
+              <div class="details-cell">Matière</div>
+              <div class="details-cell">Filière</div>
+              <div class="details-cell">Groupe</div>
+              <div class="details-cell">Nombre de séances</div>
+              <div class="details-cell">Équivalent TD</div>
+            </div>
+            
+            <!-- Cours -->
+            <div class="details-row">
+              <div class="details-cell type-cell">Cours</div>
+              <div class="details-cell">
+                <div *ngFor="let matiere of getMatieresControls(1).concat(getMatieresControls(2))">
+                  <span *ngIf="matiere.get('typeSeance')?.value === 'Cours'">
+                    {{ getMatiereNameById(matiere.get('id')?.value) }}
+                  </span>
+                </div>
+              </div>
+              <div class="details-cell">{{ heuresActuelles.cours_filiere }}</div>
+              <div class="details-cell">-</div>
+              <div class="details-cell">
+                <div *ngFor="let matiere of getMatieresControls(1).concat(getMatieresControls(2))">
+                  <span *ngIf="matiere.get('typeSeance')?.value === 'Cours'">
+                    {{ calculateNombreSeances(matiere.get('heures')?.value) }}
+                  </span>
+                </div>
+              </div>
+              <div class="details-cell">{{ conversionHeures.coursTD }} (× 1.83)</div>
+            </div>
+            
+            <!-- TD -->
+            <div class="details-row">
+              <div class="details-cell type-cell">TD</div>
+              <div class="details-cell">
+                <div *ngFor="let matiere of getMatieresControls(1).concat(getMatieresControls(2))">
+                  <span *ngIf="matiere.get('typeSeance')?.value === 'TD'">
+                    {{ getMatiereNameById(matiere.get('id')?.value) }}
+                  </span>
+                </div>
+              </div>
+              <div class="details-cell">-</div>
+              <div class="details-cell">{{ heuresActuelles.td_groupe || 0 }}</div>
+              <div class="details-cell">
+                <div *ngFor="let matiere of getMatieresControls(1).concat(getMatieresControls(2))">
+                  <span *ngIf="matiere.get('typeSeance')?.value === 'TD'">
+                    {{ calculateNombreSeances(matiere.get('heures')?.value) }}
+                  </span>
+                </div>
+              </div>
+              <div class="details-cell">{{ heuresActuelles.td }} (× 1)</div>
+            </div>
+            
+            <!-- TP -->
+            <div class="details-row">
+              <div class="details-cell type-cell">TP</div>
+              <div class="details-cell">
+                <div *ngFor="let matiere of getMatieresControls(1).concat(getMatieresControls(2))">
+                  <span *ngIf="matiere.get('typeSeance')?.value === 'TP'">
+                    {{ getMatiereNameById(matiere.get('id')?.value) }}
+                  </span>
+                </div>
+              </div>
+              <div class="details-cell">-</div>
+              <div class="details-cell">{{ heuresActuelles.tp_groupe || 0 }}</div>
+              <div class="details-cell">
+                <div *ngFor="let matiere of getMatieresControls(1).concat(getMatieresControls(2))">
+                  <span *ngIf="matiere.get('typeSeance')?.value === 'TP'">
+                    {{ calculateNombreSeances(matiere.get('heures')?.value) }}
+                  </span>
+                </div>
+              </div>
+              <div class="details-cell">{{ conversionHeures.tpTD }} (× 0.86)</div>
+            </div>
+            
+            <!-- Total -->
+            <div class="details-row total">
+              <div class="details-cell">Total</div>
+              <div class="details-cell"></div>
+              <div class="details-cell"></div>
+              <div class="details-cell"></div>
+              <div class="details-cell"></div>
+              <div class="details-cell">{{ conversionHeures.totalTD }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="semester-tabs">
+      <div class="tabs-container">
+        <div class="tab" [class.active]="activeTab === 'semestre1'" (click)="setActiveTab('semestre1')">
+          <i class="fas fa-calendar-alt"></i>
+          <span>Semestre 1</span>
+        </div>
+        <div class="tab" [class.active]="activeTab === 'semestre2'" (click)="setActiveTab('semestre2')">
+          <i class="fas fa-calendar-alt"></i>
+          <span>Semestre 2</span>
+        </div>
+      </div>
+
+      <!-- Semestre 1 Tab -->
+      <div id="semestre1" class="tab-content" [class.active]="activeTab === 'semestre1'">
+        <div class="semester-form">
+          <h2>Voeux pour le Semestre 1</h2>
+          
+          <!-- Filters -->
+          <div class="filters-container">
+            <form [formGroup]="semestre1Form">
+              <div class="filters-row">
+                <div class="filter-group">
+                  <label for="departement-s1">Département</label>
+                  <select id="departement-s1" formControlName="departement">
+                    <option value="">Sélectionnez un département</option>
+                    <option *ngFor="let dept of departements" [value]="dept._id || dept.id">{{ dept.name || dept.nom }}</option>
+                  </select>
+                </div>
+                <div class="filter-group">
+                  <label for="specialite-s1">Spécialité</label>
+                  <select id="specialite-s1" formControlName="specialite">
+                    <option value="">Sélectionnez une spécialité</option>
+                    <ng-container *ngFor="let specialite of specialites">
+                      <option [value]="specialite._id || specialite.id" *ngIf="!semestre1Form.get('departement')?.value || specialite.departement === semestre1Form.get('departement')?.value || specialite.department === semestre1Form.get('departement')?.value">
+                        {{ specialite.name || specialite.nom }}
+                      </option>
+                    </ng-container>
+                  </select>
+                </div>
+                <div class="filter-group">
+                  <label for="niveau-s1">Niveau</label>
+                  <select id="niveau-s1" formControlName="niveau">
+                    <option value="">Sélectionnez un niveau</option>
+                    <option *ngFor="let niveau of niveaux" [value]="niveau._id || niveau.id">{{ niveau.name || niveau.nom }}</option>
+                  </select>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- Matières disponibles -->
+          <!-- Matières disponibles avec CSS amélioré -->
+          <div class="section-header">
+            <h2>Matières disponibles</h2>
+          </div>
+          <div class="devoirs-grid">
+            <div *ngIf="filteredMatieresSemestre1.length === 0" class="empty-state">
+              <i class="fas fa-book-open"></i>
+              <p>Aucune matière disponible pour les critères sélectionnés.</p>
+            </div>
+            <div *ngFor="let matiere of filteredMatieresSemestre1" 
+                class="devoir-card" 
+                [class.selected]="isSelected(1, matiere.id)"
+                [class.unavailable]="isUnavailable(matiere.id)"
+                (click)="!isUnavailable(matiere.id) && toggleMatiere(1, matiere)">
+              <div class="devoir-card-header" [class.active]="isSelected(1, matiere.id)" [class.unavailable]="isUnavailable(matiere.id)">
+                <div class="devoir-status">
+                  <i class="fas" 
+                     [class.fa-check-circle]="isSelected(1, matiere.id)" 
+                     [class.fa-book]="!isSelected(1, matiere.id) && !isUnavailable(matiere.id)"
+                     [class.fa-lock]="isUnavailable(matiere.id)"></i>
+                  <span>{{ isSelected(1, matiere.id) ? 'Sélectionnée' : (isUnavailable(matiere.id) ? 'Déjà attribuée' : 'Disponible') }}</span>
+                </div>
+              </div>
+              <div class="devoir-card-body">
+                <h3>{{ matiere.nom }}</h3>
+                <div class="devoir-meta">
+                  <div class="meta-item">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>{{ getNiveauName(matiere.niveau) }}</span>
+                  </div>
+                  <div class="meta-item">
+                    <i class="fas fa-building"></i>
+                    <span>{{ getDepartementName(matiere.departement) }}</span>
+                  </div>
+                  <div class="meta-item">
+                    <i class="fas fa-bookmark"></i>
+                    <span>{{ getSpecialiteName(matiere.specialite) }}</span>
+                  </div>
+                </div>
+                <div class="devoir-tags">
+                  <span class="tag">{{ matiere.heures }} heures</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Matières sélectionnées avec tableau amélioré -->
+          <div class="section-header">
+            <h2>Matières sélectionnées</h2>
+          </div>
+          <div class="modern-table-container">
+            <table *ngIf="getMatieresControls(1).length > 0" class="modern-table">
+              <thead>
+                <tr>
+                  <th class="priority-column">Priorité</th>
+                  <th>Matière</th>
+                  <th>Type de séance</th>
+                  <th>Nombre d'heures</th>
+                  <th>Nombre de filières/groupes</th>
+                  <th class="actions-column">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let matiere of getMatieresControls(1); let i = index" class="priority-row">
+                  <td class="priority-cell">
+                    <div class="priority-number">{{ i + 1 }}</div>
+                    <div class="priority-actions">
+                      <button class="priority-btn" [disabled]="i === 0" (click)="moveUp(1, i)">
+                        <i class="fas fa-chevron-up"></i>
+                      </button>
+                      <button class="priority-btn" [disabled]="i === getMatieresControls(1).length - 1" (click)="moveDown(1, i)">
+                        <i class="fas fa-chevron-down"></i>
+                      </button>
+                    </div>
+                  </td>
+                  <td>{{ matiere.get('nom')?.value }}</td>
+                  <td>
+                    <select (change)="onTypeSeanceChange($event, 1, i)" class="type-seance-select">
+                      <option value="Cours" [selected]="matiere.get('typeSeance')?.value === 'Cours'">Cours</option>
+                      <option value="TD" [selected]="matiere.get('typeSeance')?.value === 'TD'">TD</option>
+                      <option value="TP" [selected]="matiere.get('typeSeance')?.value === 'TP'">TP</option>
+                    </select>
+                  </td>
+                  <td>
+                    <!-- Champ numérique pour les heures au lieu d'un select -->
+                    <div class="hours-input-container">
+                      <input 
+                        type="number" 
+                        [value]="matiere.get('heures')?.value" 
+                        (change)="onHeuresInputChange($event, 1, i)"
+                        min="1" 
+                        max="100" 
+                        step="1"
+                        class="hours-input"
+                      >
+                      <span class="hours-label">heures</span>
+                    </div>
+                  </td>
+                  <td>
+                    <!-- Pour les cours: sélecteur de nombre de filières -->
+                    <select *ngIf="matiere.get('typeSeance')?.value === 'Cours'" 
+                            (change)="onNbFilieresChange($event, 1, i)" 
+                            class="filieres-select">
+                      <option *ngFor="let f of filieresOptions" [value]="f" [selected]="matiere.get('nbFilieres')?.value === f">{{ f }}</option>
+                    </select>
+                    
+                    <!-- Pour les TD et TP: sélecteur de nombre de groupes -->
+                    <select *ngIf="matiere.get('typeSeance')?.value === 'TD' || matiere.get('typeSeance')?.value === 'TP'" 
+                            (change)="onNbGroupesChange($event, 1, i)" 
+                            class="groupes-select">
+                      <option *ngFor="let g of groupesOptions" [value]="g" [selected]="matiere.get('nbGroupes')?.value === g">{{ g }}</option>
+                    </select>
+                  </td>
+                  <td class="actions-cell">
+                    <button class="action-button delete" (click)="removeMatiere(1, i)">
+                      <i class="fas fa-minus-circle"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="3" class="text-right"><strong>Total:</strong></td>
+                  <td><strong>{{ getTotalHeures(1) }}</strong></td>
+                  <td colspan="2"></td>
+                </tr>
+              </tfoot>
+            </table>
+            <div class="empty-state" *ngIf="getMatieresControls(1).length === 0">
+              <i class="fas fa-list-alt"></i>
+              <p>Aucune matière sélectionnée. Cliquez sur une matière dans la liste ci-dessus pour la sélectionner.</p>
+            </div>
+          </div>
+          
+          <!-- Bouton de soumission global pour le semestre 1 -->
+          <div class="global-submit-container" *ngIf="getMatieresControls(1).length > 0">
+            <div class="submit-info">
+              <div class="submit-icon">
+                <i class="fas fa-paper-plane"></i>
+              </div>
+              <div class="submit-text">
+                <h3>Prêt à soumettre vos voeux?</h3>
+                <p>Vérifiez que toutes vos sélections sont correctes avant de soumettre.</p>
+              </div>
+            </div>
+            <button 
+              class="btn-submit-global" 
+              [disabled]="semestre1Submitted || getMatieresControls(1).length === 0"
+              (click)="submitVoeux(1)">
+              <span class="btn-text">Soumettre mes voeux</span>
+              <span class="btn-icon"><i class="fas fa-check"></i></span>
+            </button>
+          </div>
+          
+          <!-- Confirmation -->
+          <div class="submission-confirmation" *ngIf="semestre1Submitted">
+            <div class="empty-state">
+              <i class="fas fa-check-circle" style="color: var(--success-color);"></i>
+              <p>Vos voeux pour le Semestre 1 ont été soumis avec succès.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Semestre 2 Tab -->
+      <div id="semestre2" class="tab-content" [class.active]="activeTab === 'semestre2'">
+        <div class="semester-form">
+          <h2>Voeux pour le Semestre 2</h2>
+          
+          <!-- Filters -->
+          <div class="filters-container">
+            <form [formGroup]="semestre2Form">
+              <div class="filters-row">
+                <div class="filter-group">
+                  <label for="departement-s2">Département</label>
+                  <select id="departement-s2" formControlName="departement">
+                    <option value="">Sélectionnez un département</option>
+                    <option *ngFor="let dept of departements" [value]="dept._id || dept.id">{{ dept.name || dept.nom }}</option>
+                  </select>
+                </div>
+                <div class="filter-group">
+                  <label for="specialite-s2">Spécialité</label>
+                  <select id="specialite-s2" formControlName="specialite">
+                    <option value="">Sélectionnez une spécialité</option>
+                    <ng-container *ngFor="let specialite of specialites">
+                      <option [value]="specialite._id || specialite.id" *ngIf="!semestre2Form.get('departement')?.value || specialite.departement === semestre2Form.get('departement')?.value || specialite.department === semestre2Form.get('departement')?.value">
+                        {{ specialite.name || specialite.nom }}
+                      </option>
+                    </ng-container>
+                  </select>
+                </div>
+                <div class="filter-group">
+                  <label for="niveau-s2">Niveau</label>
+                  <select id="niveau-s2" formControlName="niveau">
+                    <option value="">Sélectionnez un niveau</option>
+                    <option *ngFor="let niveau of niveaux" [value]="niveau._id || niveau.id">{{ niveau.name || niveau.nom }}</option>
+                  </select>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- Matières disponibles -->
+          <div class="section-header">
+            <h2>Matières disponibles</h2>
+          </div>
+          <div class="devoirs-grid">
+            <div *ngIf="filteredMatieresSemestre2.length === 0" class="empty-state">
+              <i class="fas fa-book-open"></i>
+              <p>Aucune matière disponible pour les critères sélectionnés.</p>
+            </div>
+            <div *ngFor="let matiere of filteredMatieresSemestre2" 
+                class="devoir-card" 
+                [class.selected]="isSelected(2, matiere.id)"
+                [class.unavailable]="isUnavailable(matiere.id)"
+                (click)="!isUnavailable(matiere.id) && toggleMatiere(2, matiere)">
+              <div class="devoir-card-header" [class.active]="isSelected(2, matiere.id)" [class.unavailable]="isUnavailable(matiere.id)">
+                <div class="devoir-status">
+                  <i class="fas" 
+                     [class.fa-check-circle]="isSelected(2, matiere.id)" 
+                     [class.fa-book]="!isSelected(2, matiere.id) && !isUnavailable(matiere.id)"
+                     [class.fa-lock]="isUnavailable(matiere.id)"></i>
+                  <span>{{ isSelected(2, matiere.id) ? 'Sélectionnée' : (isUnavailable(matiere.id) ? 'Déjà attribuée' : 'Disponible') }}</span>
+                </div>
+              </div>
+              <div class="devoir-card-body">
+                <h3>{{ matiere.nom }}</h3>
+                <div class="devoir-meta">
+                  <div class="meta-item">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>{{ getNiveauName(matiere.niveau) }}</span>
+                  </div>
+                  <div class="meta-item">
+                    <i class="fas fa-building"></i>
+                    <span>{{ getDepartementName(matiere.departement) }}</span>
+                  </div>
+                  <div class="meta-item">
+                    <i class="fas fa-bookmark"></i>
+                    <span>{{ getSpecialiteName(matiere.specialite) }}</span>
+                  </div>
+                </div>
+                <div class="devoir-tags">
+                  <span class="tag">{{ matiere.heures }} heures</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Matières sélectionnées -->
+          <div class="section-header">
+            <h2>Matières sélectionnées</h2>
+          </div>
+          <div class="modern-table-container">
+            <table *ngIf="getMatieresControls(2).length > 0" class="modern-table">
+              <thead>
+                <tr>
+                  <th class="priority-column">Priorité</th>
+                  <th>Matière</th>
+                  <th>Type de séance</th>
+                  <th>Nombre d'heures</th>
+                  <th>Nombre de filières/groupes</th>
+                  <th class="actions-column">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let matiere of getMatieresControls(2); let i = index" class="priority-row">
+                  <td class="priority-cell">
+                    <div class="priority-number">{{ i + 1 }}</div>
+                    <div class="priority-actions">
+                      <button class="priority-btn" [disabled]="i === 0" (click)="moveUp(2, i)">
+                        <i class="fas fa-chevron-up"></i>
+                      </button>
+                      <button class="priority-btn" [disabled]="i === getMatieresControls(2).length - 1" (click)="moveDown(2, i)">
+                        <i class="fas fa-chevron-down"></i>
+                      </button>
+                    </div>
+                  </td>
+                  <td>{{ matiere.get('nom')?.value }}</td>
+                  <td>
+                    <select (change)="onTypeSeanceChange($event, 2, i)" class="type-seance-select">
+                      <option value="Cours" [selected]="matiere.get('typeSeance')?.value === 'Cours'">Cours</option>
+                      <option value="TD" [selected]="matiere.get('typeSeance')?.value === 'TD'">TD</option>
+                      <option value="TP" [selected]="matiere.get('typeSeance')?.value === 'TP'">TP</option>
+                    </select>
+                  </td>
+                  <td>
+                    <div class="hours-display readonly">
+                      <span class="hours-value">{{ getHeuresByCourId(matiere.get('id')?.value) }} heures</span>
+                      <span class="hours-badge">{{ calculateNombreSeances(getHeuresByCourId(matiere.get('id')?.value)) }} séance(s)</span>
+                    </div>
+                  </td>
+                  <td>
+                    <!-- Pour les cours: sélecteur de nombre de filières -->
+                    <select *ngIf="matiere.get('typeSeance')?.value === 'Cours'" 
+                            (change)="onNbFilieresChange($event, 2, i)" 
+                            class="filieres-select">
+                      <option *ngFor="let f of filieresOptions" [value]="f" [selected]="matiere.get('nbFilieres')?.value === f">{{ f }}</option>
+                    </select>
+                    
+                    <!-- Pour les TD et TP: sélecteur de nombre de groupes -->
+                    <select *ngIf="matiere.get('typeSeance')?.value === 'TD' || matiere.get('typeSeance')?.value === 'TP'" 
+                            (change)="onNbGroupesChange($event, 2, i)" 
+                            class="groupes-select">
+                      <option *ngFor="let g of groupesOptions" [value]="g" [selected]="matiere.get('nbGroupes')?.value === g">{{ g }}</option>
+                    </select>
+                  </td>
+                  <td class="actions-cell">
+                    <button class="action-button delete" (click)="removeMatiere(2, i)">
+                      <i class="fas fa-minus-circle"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="3" class="text-right"><strong>Total:</strong></td>
+                  <td><strong>{{ getTotalHeures(2) }}</strong></td>
+                  <td colspan="2"></td>
+                </tr>
+              </tfoot>
+            </table>
+            <div class="empty-state" *ngIf="getMatieresControls(2).length === 0">
+              <i class="fas fa-list-alt"></i>
+              <p>Aucune matière sélectionnée. Cliquez sur une matière dans la liste ci-dessus pour la sélectionner.</p>
+            </div>
+          </div>
+
+          <!-- Bouton de soumission global pour le semestre 2 -->
+          <div class="global-submit-container" *ngIf="getMatieresControls(2).length > 0">
+            <div class="submit-info">
+              <div class="submit-icon">
+                <i class="fas fa-paper-plane"></i>
+              </div>
+              <div class="submit-text">
+                <h3>Prêt à soumettre vos voeux?</h3>
+                <p>Vérifiez que toutes vos sélections sont correctes avant de soumettre.</p>
+              </div>
+            </div>
+            <button 
+              class="btn-submit-global" 
+              [disabled]="semestre2Submitted || getMatieresControls(2).length === 0"
+              (click)="submitVoeux(2)">
+              <span class="btn-text">Soumettre mes voeux</span>
+              <span class="btn-icon"><i class="fas fa-check"></i></span>
+            </button>
+          </div>
+
+          <!-- Confirmation -->
+          <div class="submission-confirmation" *ngIf="semestre2Submitted">
+            <div class="empty-state">
+              <i class="fas fa-check-circle" style="color: var(--success-color);"></i>
+              <p>Vos voeux pour le Semestre 2 ont été soumis avec succès.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal pour l'avertissement de dépassement de charge -->
+<div class="modal-overlay" *ngIf="activeModal === 'chargeDepassee'" (click)="hideModal()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header warning">
+      <h2><i class="fas fa-exclamation-triangle"></i> Attention: Dépassement de charge</h2>
+      <button class="close-button" (click)="hideModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>Votre charge horaire actuelle de <strong>{{ conversionHeures.totalTD }} heures</strong> dépasse la limite de <strong>{{ chargeHoraire.total }} heures</strong> par semestre ({{ chargeHoraire.totalHebdo }} heures hebdomadaires).</p>
+      
+      <div class="charge-details">
+        <div class="charge-detail-item">
+          <span class="detail-label">Charge de base:</span>
+          <span class="detail-value">{{ chargeHoraire.baseHebdo }} heures/semaine</span>
+        </div>
+        <div class="charge-detail-item">
+          <span class="detail-label">Charge supplémentaire:</span>
+          <span class="detail-value">{{ chargeHoraire.supplementaireHebdo }} heures/semaine</span>
+        </div>
+        <div class="charge-detail-item total">
+          <span class="detail-label">Charge totale:</span>
+          <span class="detail-value">{{ chargeHoraire.totalHebdo }} heures/semaine</span>
+        </div>
+      </div>
+      
+      <div class="warning-message">
+        <p>Veuillez ajuster vos sélections pour respecter la limite de charge horaire.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" (click)="hideModal()">J'ai compris</button>
+    </div>
+  </div>
+</div>

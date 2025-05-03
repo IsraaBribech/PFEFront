@@ -1,0 +1,258 @@
+<div class="enseignant-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <div class="logo-icon">E</div>
+          <span class="logo-text">EduSpace</span>
+        </div>
+        <div class="enseignant-info">
+          <div class="enseignant-avatar">{{ enseignantName[0] }}</div>
+          <div class="enseignant-details">
+            <h3>{{ enseignantName }}</h3>
+            <p>{{ enseignantEmail }}</p>
+          </div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <ul>
+          <li routerLink="/dashboard" routerLinkActive="active">
+            <i class="fas fa-home"></i>
+            <span>Tableau de bord</span>
+          </li>
+          <li routerLink="/cour" routerLinkActive="active">
+            <i class="fas fa-book"></i>
+            <span>Cours</span>
+          </li>
+          <li routerLink="/devoir" routerLinkActive="active">
+            <i class="fas fa-tasks"></i>
+            <span>Devoir</span>
+          </li>
+          <li routerLink="/quiz" routerLinkActive="active">
+            <i class="fas fa-question-circle"></i>
+            <span>Quiz</span>
+          </li>
+          <li routerLink="/message" routerLinkActive="active">
+            <i class="fas fa-envelope"></i>
+            <span>Message</span>
+          </li>
+          <li routerLink="/voeux" routerLinkActive="active">
+            <i class="fas fa-list-alt"></i>
+            <span>Voeux</span>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="content-header">
+        <div class="header-title">
+          <h1>Messages</h1>
+        </div>
+        <div class="header-actions">
+          <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Rechercher un message..." [(ngModel)]="searchTerm" (input)="filterMessages()">
+          </div>
+          <button class="btn-primary" (click)="showModal('newMessage')">
+            <i class="fas fa-plus"></i> Nouveau message
+          </button>
+        </div>
+      </div>
+  
+      <!-- Message Tabs -->
+      <div class="message-tabs">
+        <div class="tab" [class.active]="activeTab === 'inbox'" (click)="setActiveTab('inbox')">
+          <i class="fas fa-inbox"></i> Boîte de réception
+          <span class="badge" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
+        </div>
+        <div class="tab" [class.active]="activeTab === 'sent'" (click)="setActiveTab('sent')">
+          <i class="fas fa-paper-plane"></i> Messages envoyés
+        </div>
+        <div class="tab" [class.active]="activeTab === 'archived'" (click)="setActiveTab('archived')">
+          <i class="fas fa-archive"></i> Archives
+        </div>
+      </div>
+  
+      <!-- Message List -->
+      <div class="message-list-container">
+        <div class="message-list">
+          <div class="message-item" *ngFor="let message of filteredMessages" 
+               [class.unread]="message.unread" 
+               [class.active]="selectedMessage?._id === message._id"
+               (click)="selectMessage(message)">
+            <div class="message-avatar" [ngStyle]="{'background-color': message.sender === 'admin' ? '#ef4444' : '#6366f1'}">
+              {{ message.senderName[0] }}
+            </div>
+            <div class="message-content">
+              <div class="message-header">
+                <h3>{{ message.senderName }}</h3>
+                <span class="message-date">{{ message.date | date:'dd/MM/yyyy' }}</span>
+              </div>
+              <div class="message-subject">{{ message.subject }}</div>
+              <div class="message-preview">{{ message.content | slice:0:60 }}{{ message.content.length > 60 ? '...' : '' }}</div>
+            </div>
+          </div>
+          <div class="empty-state" *ngIf="filteredMessages.length === 0">
+            <i class="fas fa-envelope-open"></i>
+            <p>Aucun message trouvé</p>
+          </div>
+        </div>
+  
+        <!-- Message Detail -->
+        <div class="message-detail" *ngIf="selectedMessage">
+          <div class="message-detail-header">
+            <h2>{{ selectedMessage.subject }}</h2>
+            <div class="message-actions">
+              <button class="action-button" (click)="replyToMessage()">
+                <i class="fas fa-reply"></i>
+              </button>
+              <button class="action-button" (click)="forwardMessage()">
+                <i class="fas fa-share"></i>
+              </button>
+              <button class="action-button" (click)="archiveMessage()">
+                <i class="fas fa-archive"></i>
+              </button>
+              <button class="action-button delete" (click)="deleteMessage()">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          <div class="message-detail-info">
+            <div class="sender-info">
+              <div class="message-avatar large" [ngStyle]="{'background-color': selectedMessage.sender === 'admin' ? '#ef4444' : '#6366f1'}">
+                {{ selectedMessage.senderName[0] }}
+              </div>
+              <div>
+                <h3>{{ selectedMessage.senderName }}</h3>
+                <p>{{ selectedMessage.senderEmail }}</p>
+                <span class="message-date">{{ selectedMessage.date | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+            </div>
+            <div class="recipient-info" *ngIf="activeTab === 'sent'">
+              <p><strong>À:</strong> {{ selectedMessage.recipientName }}</p>
+            </div>
+          </div>
+          <div class="message-detail-content">
+            {{ selectedMessage.content }}
+          </div>
+          <div class="message-attachments" *ngIf="selectedMessage.attachments && selectedMessage.attachments.length > 0">
+            <h4>Pièces jointes</h4>
+            <div class="attachment-list">
+              <div class="attachment-item" *ngFor="let attachment of selectedMessage.attachments">
+                <i class="fas fa-file"></i>
+                <span>{{ attachment.name }}</span>
+                <button class="download-button" (click)="downloadAttachment(attachment)">
+                  <i class="fas fa-download"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- New Message Modal -->
+  <div class="modal-overlay" *ngIf="activeModal === 'newMessage'">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2>Nouveau message</h2>
+        <button class="close-button" (click)="hideModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="messageForm">
+          <div class="form-group">
+            <label for="message-recipient">Destinataire</label>
+            <select id="message-recipient" formControlName="recipient">
+              <option value="">Sélectionnez un destinataire</option>
+              <option value="all">Tous les étudiants</option>
+              <option value="admin">Administration</option>
+              <option *ngFor="let etudiant of etudiants" [value]="etudiant._id">{{ etudiant.name }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="message-subject">Sujet</label>
+            <input type="text" id="message-subject" formControlName="subject" placeholder="Entrez le sujet du message">
+          </div>
+          <div class="form-group">
+            <label for="message-content">Contenu</label>
+            <textarea id="message-content" formControlName="content" placeholder="Entrez le contenu du message"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="message-file">Pièces jointes</label>
+            <input type="file" id="message-file" #messageFileInput (change)="onFileChange($event)" class="file-input" multiple>
+            <div class="file-input-wrapper">
+              <span class="file-name">{{ selectedFiles.length > 0 ? selectedFiles.length + ' fichier(s) sélectionné(s)' : 'Aucun fichier sélectionné' }}</span>
+              <button type="button" class="file-button" (click)="messageFileInput.click()">Parcourir</button>
+            </div>
+          </div>
+          <div class="selected-files" *ngIf="selectedFiles.length > 0">
+            <div class="selected-file" *ngFor="let file of selectedFiles; let i = index">
+              <i class="fas fa-file"></i>
+              <span>{{ file.name }}</span>
+              <button class="remove-file" (click)="removeFile(i)">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="hideModal()">Annuler</button>
+        <button class="btn-primary" [disabled]="!messageForm.valid" (click)="sendMessage()">Envoyer</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Reply Modal -->
+  <div class="modal-overlay" *ngIf="activeModal === 'reply'">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2>Répondre au message</h2>
+        <button class="close-button" (click)="hideModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="replyForm">
+          <div class="form-group">
+            <label>À</label>
+            <input type="text" [value]="selectedMessage?.senderName" disabled>
+          </div>
+          <div class="form-group">
+            <label for="reply-subject">Sujet</label>
+            <input type="text" id="reply-subject" formControlName="subject" placeholder="Entrez le sujet du message">
+          </div>
+          <div class="form-group">
+            <label for="reply-content">Contenu</label>
+            <textarea id="reply-content" formControlName="content" placeholder="Entrez le contenu du message"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="reply-file">Pièces jointes</label>
+            <input type="file" id="reply-file" #replyFileInput (change)="onReplyFileChange($event)" class="file-input" multiple>
+            <div class="file-input-wrapper">
+              <span class="file-name">{{ replyFiles.length > 0 ? replyFiles.length + ' fichier(s) sélectionné(s)' : 'Aucun fichier sélectionné' }}</span>
+              <button type="button" class="file-button" (click)="replyFileInput.click()">Parcourir</button>
+            </div>
+          </div>
+          <div class="selected-files" *ngIf="replyFiles.length > 0">
+            <div class="selected-file" *ngFor="let file of replyFiles; let i = index">
+              <i class="fas fa-file"></i>
+              <span>{{ file.name }}</span>
+              <button class="remove-file" (click)="removeReplyFile(i)">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="hideModal()">Annuler</button>
+        <button class="btn-primary" [disabled]="!replyForm.valid" (click)="submitReply()">Envoyer</button>
+      </div>
+    </div>
+  </div>

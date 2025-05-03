@@ -1,0 +1,209 @@
+<div class="notification-page">
+  <div class="notification-container">
+    <!-- En-tête -->
+    <div class="notification-header">
+      <h2>Mes notifications</h2>
+      <div class="header-actions">
+        <button class="btn-refresh" (click)="refreshNotifications()" [disabled]="isLoading" title="Rafraîchir les notifications">
+          <i class="fas fa-sync-alt" [class.fa-spin]="isLoading"></i>
+          <span>Rafraîchir</span>
+        </button>
+        <button class="btn-mark-all-read" (click)="activeTab === 'academic' ? markAllAcademicNotificationsAsRead() : markAllMessageNotificationsAsRead()" [disabled]="isLoading" title="Marquer toutes comme lues">
+          <i class="fas fa-check-double"></i>
+          <span>Tout marquer comme lu</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Onglets pour basculer entre les types de notifications -->
+    <div class="notification-tabs">
+      <button 
+        [class.active]="activeTab === 'academic'" 
+        (click)="setActiveTab('academic')">
+        <i class="fas fa-graduation-cap"></i> Notifications académiques
+      </button>
+      <button 
+        [class.active]="activeTab === 'messages'" 
+        (click)="setActiveTab('messages')">
+        <i class="fas fa-envelope"></i> Messages du forum
+      </button>
+    </div>
+
+    <!-- Contenu des onglets -->
+    <div class="tab-content">
+      <!-- Onglet des notifications académiques -->
+      <div *ngIf="activeTab === 'academic'" class="academic-tab">
+        <!-- Filtres pour les notifications académiques -->
+        <div class="notification-filters">
+          <button 
+            [class.active]="activeAcademicFilter === 'all'" 
+            (click)="setAcademicFilter('all')">
+            <i class="fas fa-list"></i> Toutes
+          </button>
+          <button 
+            [class.active]="activeAcademicFilter === 'unread'" 
+            (click)="setAcademicFilter('unread')">
+            <i class="fas fa-envelope"></i> Non lues
+          </button>
+          <button 
+            [class.active]="activeAcademicFilter === 'cours'" 
+            (click)="setAcademicFilter('cours')">
+            <i class="fas fa-book"></i> Cours
+          </button>
+          <button 
+            [class.active]="activeAcademicFilter === 'devoir'" 
+            (click)="setAcademicFilter('devoir')">
+            <i class="fas fa-tasks"></i> Devoirs
+          </button>
+          <button 
+            [class.active]="activeAcademicFilter === 'quiz'" 
+            (click)="setAcademicFilter('quiz')">
+            <i class="fas fa-question-circle"></i> Quiz
+          </button>
+          <button 
+            [class.active]="activeAcademicFilter === 'soumission'" 
+            (click)="setAcademicFilter('soumission')">
+            <i class="fas fa-check-circle"></i> Soumissions
+          </button>
+        </div>
+
+        <!-- État de chargement -->
+        <div *ngIf="isLoading" class="loading-state">
+          <div class="spinner"></div>
+          <p>Chargement des notifications...</p>
+        </div>
+
+        <!-- Message d'erreur -->
+        <div *ngIf="error && !isLoading" class="error-state">
+          <i class="fas fa-exclamation-circle"></i>
+          <h3>Erreur de chargement</h3>
+          <p>{{ error }}</p>
+          <button class="btn-retry" (click)="loadNotifications()">
+            <i class="fas fa-sync-alt"></i> Réessayer
+          </button>
+        </div>
+
+        <!-- Liste des notifications académiques -->
+        <div *ngIf="!isLoading && !error && filteredAcademicNotifications.length > 0" class="notification-list">
+          <div class="notification-item" *ngFor="let notification of getCurrentAcademicPageItems()" 
+               [class.unread]="!notification.read"
+               (click)="markAcademicNotificationAsRead(notification)">
+            <div class="notification-item-icon" [class]="notification.type">
+              <i [class]="'fas ' + getAcademicNotificationIcon(notification.type)"></i>
+            </div>
+            <div class="notification-content">
+              <div class="notification-title">{{ notification.title }}</div>
+              <div class="notification-message">{{ notification.message }}</div>
+              <div class="notification-time">{{ formatTimeAgo(notification.date) }}</div>
+            </div>
+            <div class="notification-status" *ngIf="!notification.read"></div>
+          </div>
+        </div>
+
+        <!-- Aucune notification académique -->
+        <div *ngIf="!isLoading && !error && filteredAcademicNotifications.length === 0" class="empty-state">
+          <i class="fas fa-bell-slash"></i>
+          <h3>Aucune notification académique</h3>
+          <p>Vous n'avez aucune notification académique correspondant à vos critères.</p>
+        </div>
+
+        <!-- Pagination pour les notifications académiques -->
+        <div *ngIf="!isLoading && filteredAcademicNotifications.length > itemsPerPage" class="pagination">
+          <button [disabled]="academicCurrentPage === 1" (click)="goToAcademicPage(1)" class="page-btn">
+            <i class="fas fa-angle-double-left"></i>
+          </button>
+          <button [disabled]="academicCurrentPage === 1" (click)="goToAcademicPage(academicCurrentPage - 1)" class="page-btn">
+            <i class="fas fa-angle-left"></i>
+          </button>
+          
+          <div class="page-numbers">
+            <button *ngFor="let page of getAcademicPageNumbers()" 
+                    [class.active]="page === academicCurrentPage"
+                    (click)="goToAcademicPage(page)" class="page-number">
+              {{ page }}
+            </button>
+          </div>
+          
+          <button [disabled]="academicCurrentPage === getAcademicTotalPages()" (click)="goToAcademicPage(academicCurrentPage + 1)" class="page-btn">
+            <i class="fas fa-angle-right"></i>
+          </button>
+          <button [disabled]="academicCurrentPage === getAcademicTotalPages()" (click)="goToAcademicPage(getAcademicTotalPages())" class="page-btn">
+            <i class="fas fa-angle-double-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Onglet des notifications de messages -->
+      <div *ngIf="activeTab === 'messages'" class="messages-tab">
+        <!-- État de chargement -->
+        <div *ngIf="isLoading" class="loading-state">
+          <div class="spinner"></div>
+          <p>Chargement des messages...</p>
+        </div>
+
+        <!-- Message d'erreur -->
+        <div *ngIf="error && !isLoading" class="error-state">
+          <i class="fas fa-exclamation-circle"></i>
+          <h3>Erreur de chargement</h3>
+          <p>{{ error }}</p>
+          <button class="btn-retry" (click)="loadNotifications()">
+            <i class="fas fa-sync-alt"></i> Réessayer
+          </button>
+        </div>
+
+        <!-- Liste des notifications de messages -->
+        <div *ngIf="!isLoading && !error && filteredMessageNotifications.length > 0" class="notification-list">
+          <div class="notification-item" *ngFor="let notification of getCurrentMessagePageItems()" 
+               [class.unread]="!notification.read"
+               (click)="markMessageNotificationAsRead(notification)">
+            <div class="notification-item-icon message">
+              <i class="fas fa-envelope"></i>
+            </div>
+            <div class="notification-content">
+              <div class="notification-title">{{ notification.title }}</div>
+              <div class="notification-message">{{ notification.message }}</div>
+              <div class="notification-meta">
+                <span class="notification-sender">De: {{ notification.expediteurNom }}</span>
+                <span class="notification-topic">Sujet: {{ notification.sujetTitre }}</span>
+              </div>
+              <div class="notification-time">{{ formatTimeAgo(notification.date) }}</div>
+            </div>
+            <div class="notification-status" *ngIf="!notification.read"></div>
+          </div>
+        </div>
+
+        <!-- Aucune notification de message -->
+        <div *ngIf="!isLoading && !error && filteredMessageNotifications.length === 0" class="empty-state">
+          <i class="fas fa-envelope-open"></i>
+          <h3>Aucun message</h3>
+          <p>Vous n'avez aucune notification de message dans le forum.</p>
+        </div>
+
+        <!-- Pagination pour les notifications de messages -->
+        <div *ngIf="!isLoading && filteredMessageNotifications.length > itemsPerPage" class="pagination">
+          <button [disabled]="messageCurrentPage === 1" (click)="goToMessagePage(1)" class="page-btn">
+            <i class="fas fa-angle-double-left"></i>
+          </button>
+          <button [disabled]="messageCurrentPage === 1" (click)="goToMessagePage(messageCurrentPage - 1)" class="page-btn">
+            <i class="fas fa-angle-left"></i>
+          </button>
+          
+          <div class="page-numbers">
+            <button *ngFor="let page of getMessagePageNumbers()" 
+                    [class.active]="page === messageCurrentPage"
+                    (click)="goToMessagePage(page)" class="page-number">
+              {{ page }}
+            </button>
+          </div>
+          
+          <button [disabled]="messageCurrentPage === getMessageTotalPages()" (click)="goToMessagePage(messageCurrentPage + 1)" class="page-btn">
+            <i class="fas fa-angle-right"></i>
+          </button>
+          <button [disabled]="messageCurrentPage === getMessageTotalPages()" (click)="goToMessagePage(getMessageTotalPages())" class="page-btn">
+            <i class="fas fa-angle-double-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

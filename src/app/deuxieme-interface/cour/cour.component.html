@@ -1,0 +1,506 @@
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">
+      <div class="logo-icon">E</div>
+      <span class="logo-text">EduSpace</span>
+    </div>
+    <!-- Transformation en bouton profil cliquable -->
+    <button class="profile-button" routerLink="/ensprofil">
+      <div class="enseignant-avatar">{{ enseignantName[0] }}</div>
+      <div class="enseignant-details">
+        <h3>{{ enseignantName }}</h3>
+        <p>{{ enseignantEmail }}</p>
+      </div>
+    </button>
+  </div>
+  <nav class="sidebar-nav">
+    <ul>
+      <li [routerLink]="['/dashboard']" routerLinkActive="active">
+        <i class="fas fa-home"></i>
+        <span>Tableau de bord</span>
+      </li>
+      <li (click)="toggleCourSubmenu()" [class.active]="showCourSubmenu">
+        <i class="fas fa-book"></i>
+        <span>Cour</span>
+        <i class="fas fa-chevron-down submenu-icon" [class.rotate]="showCourSubmenu"></i>
+      </li>
+      <!-- Sous-menu pour Cours -->
+      <div class="submenu" *ngIf="showCourSubmenu" [@submenuAnimation]>
+                <li (click)="toggleSemestreSubmenu(1)" [class.active]="showSemestreSubmenu[1]">
+          <i class="fas fa-calendar-alt"></i>
+          <span>Semestre 1</span>
+          <i class="fas fa-chevron-down submenu-icon" [class.rotate]="showSemestreSubmenu[1]"></i>
+        </li>
+        <!-- Sous-menu pour Semestre 1 -->
+        <div class="submenu nested" *ngIf="showSemestreSubmenu[1]" [@submenuAnimation]>
+        <li *ngFor="let matiere of matieresSemestre1" (click)="navigateToMatiere(matiere.id, 1)" class="matiere-menu-item">
+            <div class="matiere-menu-icon" [ngClass]="{'cours-type': matiere.type === 'Cours', 'td-type': matiere.type === 'TD', 'tp-type': matiere.type === 'TP'}">
+              <i class="fas" [ngClass]="{'fa-book': matiere.type === 'Cours', 'fa-pencil-alt': matiere.type === 'TD', 'fa-laptop-code': matiere.type === 'TP'}"></i>
+            </div>
+            <div class="matiere-menu-content">
+              <span class="matiere-menu-title">{{ matiere.nom }}</span>
+              <div class="matiere-menu-details">
+                <span class="matiere-menu-niveau">{{ matiere.niveau }}</span>
+                <span class="matiere-menu-type">{{ matiere.type }}</span>
+              </div>
+            </div>
+          </li>
+          <!-- Message si aucune matière trouvée pour le semestre 1 -->
+          <li *ngIf="matieresSemestre1.length === 0" class="empty-matiere-message">
+            <i class="fas fa-info-circle"></i>
+            <span>Aucune matière pour ce semestre</span>
+          </li>
+        </div>
+        <li (click)="toggleSemestreSubmenu(2)" [class.active]="showSemestreSubmenu[2]">
+          <i class="fas fa-calendar-alt"></i>
+          <span>Semestre 2</span>
+          <i class="fas fa-chevron-down submenu-icon" [class.rotate]="showSemestreSubmenu[2]"></i>
+        </li>
+        <!-- Sous-menu pour Semestre 2 -->
+        <div class="submenu nested" *ngIf="showSemestreSubmenu[2]" [@submenuAnimation]>
+          <li *ngFor="let matiere of matieresSemestre2" (click)="navigateToMatiere(matiere.id, 2)" class="matiere-menu-item">
+            <div class="matiere-menu-icon" [ngClass]="{'cours-type': matiere.type === 'Cours', 'td-type': matiere.type === 'TD', 'tp-type': matiere.type === 'TP'}">
+              <i class="fas" [ngClass]="{'fa-book': matiere.type === 'Cours', 'fa-pencil-alt': matiere.type === 'TD', 'fa-laptop-code': matiere.type === 'TP'}"></i>
+            </div>
+            <div class="matiere-menu-content">
+              <span class="matiere-menu-title">{{ matiere.nom }}</span>
+              <div class="matiere-menu-details">
+                <span class="matiere-menu-niveau">{{ matiere.niveau }}</span>
+                <span class="matiere-menu-type">{{ matiere.type }}</span>
+              </div>
+            </div>
+          </li>
+          <!-- Message si aucune matière trouvée pour le semestre 2 -->
+          <li *ngIf="matieresSemestre2.length === 0" class="empty-matiere-message">
+            <i class="fas fa-info-circle"></i>
+            <span>Aucune matière pour ce semestre</span>
+          </li>
+        </div>
+      </div>
+      <li [routerLink]="['/devoir']" routerLinkActive="active">
+        <i class="fas fa-tasks"></i>
+        <span>Devoir</span>
+      </li>
+      <li [routerLink]="['/quiz']" routerLinkActive="active">
+        <i class="fas fa-question-circle"></i>
+        <span>Quiz</span>
+      </li>
+      <li [routerLink]="['/message']" routerLinkActive="active">
+        <i class="fas fa-envelope"></i>
+        <span>Message</span>
+      </li>
+      <li [routerLink]="['/voeux']" routerLinkActive="active">
+        <i class="fas fa-list-alt"></i>
+        <span>Voeux</span>
+      </li>
+    </ul>
+  </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+  <div class="content-header">
+    <div class="header-title">
+      <h1>{{ currentMatiere ? currentMatiere.nom + ' - Chapitres' : 'Chapitres' }}</h1>
+    </div>
+    <div class="header-actions">
+      <div class="search-bar">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Rechercher un chapitre..." [(ngModel)]="searchTerm" (input)="filterChapitres()">
+      </div>
+      <button class="btn-primary" (click)="showModal('chapitre')">
+        <i class="fas fa-plus"></i> Nouveau chapitre
+      </button>
+    </div>
+  </div>
+
+<!-- Informations sur la matière -->
+<div class="matiere-info-card" *ngIf="currentMatiere">
+  <div class="matiere-header" [ngStyle]="{'background-color': getRandomColor(currentMatiere.id.toString())}">
+    <div class="matiere-icon">
+      <i class="fas" [ngClass]="{'fa-book': currentMatiere.type === 'Cours', 'fa-pencil-alt': currentMatiere.type === 'TD', 'fa-laptop-code': currentMatiere.type === 'TP'}"></i>
+    </div>
+  </div>
+  <div class="matiere-details">
+    <h2>{{ currentMatiere.nom }}</h2>
+    <div class="matiere-meta">
+      <div class="meta-item">
+        <i class="fas fa-building"></i>
+        <span>{{ currentMatiere.departement }}</span>
+      </div>
+      <div class="meta-item">
+        <i class="fas fa-graduation-cap"></i>
+        <span>{{ currentMatiere.niveau }}</span>
+      </div>
+      <div class="meta-item">
+        <i class="fas fa-calendar-alt"></i>
+        <span>Semestre {{ semestre }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- Indicateur de chargement pour les départements et niveaux -->
+  <div class="loading-indicator" *ngIf="!departements.length || !niveaux.length">
+    <div class="spinner"></div>
+    <p>Chargement des données...</p>
+  </div>
+
+  <!-- Liste des chapitres -->
+  <div class="chapitres-section">
+    <div class="section-header">
+      <h2>Liste des Chapitres</h2>
+    </div>
+
+    <!-- Liste des chapitres -->
+    <div class="chapitres-list">
+      <div class="chapitre-item" *ngFor="let chapitre of filteredChapitres">
+        <div class="chapitre-header">
+          <div class="chapitre-number">{{ chapitre.numero }}</div>
+        </div>
+        <div class="chapitre-content">
+          <h3>{{ chapitre.titre }}</h3>
+          <p>{{ chapitre.description }}</p>
+          <div class="chapitre-info">
+            <!-- Display creation date -->
+            <div class="info-item" *ngIf="chapitre.dateCreation">
+              <i class="fas fa-calendar-check"></i>
+              <span>Créé le {{ formatDate(chapitre.dateCreation) }}</span>
+            </div>
+            
+            <!-- Display modification date if available -->
+            <div class="info-item" *ngIf="chapitre.dateModification">
+              <i class="fas fa-edit"></i>
+              <span>Modifié le {{ formatDate(chapitre.dateModification) }}</span>
+            </div>
+            
+            <!-- Display file name if available -->
+            <div class="info-item" *ngIf="chapitre.fichierNom">
+              <i class="fas fa-file-pdf"></i>
+              <span>{{ chapitre.fichierNom }}</span>
+            </div>
+            
+            <!-- Display Meet link if available -->
+            <div class="info-item" *ngIf="chapitre.lienMeet">
+              <i class="fas fa-video"></i>
+              <span>
+                <a [href]="chapitre.lienMeet" target="_blank" class="meet-link">
+                  Lien Meet
+                </a>
+              </span>
+            </div>
+            
+            <div class="info-item">
+              <i class="fas fa-clock"></i>
+              <span>{{ chapitre.nombreSeances }} séance(s)</span>
+            </div>
+            
+            <div class="chapitre-badges">
+              <span class="badge-quiz" *ngIf="chapitre.contientQuiz">Quiz</span>
+              <span class="badge-devoir" *ngIf="chapitre.contientDevoir">Devoir</span>
+            </div>
+          </div>
+        </div>
+        <div class="chapitre-action">
+          <div class="action-buttons">
+            <button class="btn-icon btn-view" (click)="viewChapitre(chapitre)" title="Voir le chapitre">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="btn-icon btn-edit" (click)="editChapitre(chapitre)" title="Modifier le chapitre">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn-icon btn-delete" (click)="confirmDeleteChapitre(chapitre)" title="Supprimer le chapitre">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message si aucun chapitre trouvé -->
+      <div class="empty-state" *ngIf="filteredChapitres.length === 0">
+        <i class="fas fa-book-open"></i>
+        <p>Aucun chapitre n'a été publié pour cette matière</p>
+        <button class="btn-primary" (click)="showModal('chapitre')">
+          <i class="fas fa-plus"></i> Ajouter un chapitre
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal d'ajout de chapitre -->
+<div class="modal-overlay" *ngIf="activeModal === 'chapitre'">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2>Ajouter un chapitre</h2>
+      <button class="close-button" (click)="hideModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form [formGroup]="chapitreForm">
+        <div class="form-group">
+          <label for="titre">Titre du chapitre *</label>
+          <input type="text" id="titre" formControlName="titre" placeholder="Entrez le titre du chapitre">
+        </div>
+
+        <div class="form-group">
+          <label for="numero">Numéro du chapitre *</label>
+          <input type="number" id="numero" formControlName="numero" placeholder="Entrez le numéro du chapitre" min="1">
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description du chapitre *</label>
+          <textarea id="description" formControlName="description" rows="5" placeholder="Entrez une description détaillée du chapitre"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="nombreSeances">Nombre de séances *</label>
+          <input type="number" id="nombreSeances" formControlName="nombreSeances" placeholder="Entrez le nombre de séances" min="1">
+        </div>
+
+        <div class="form-group">
+          <label for="lienMeet">Lien Meet</label>
+          <input type="url" id="lienMeet" formControlName="lienMeet" placeholder="Entrez le lien Google Meet">
+        </div>
+
+        <div class="form-row">
+          <div class="form-check">
+            <input type="checkbox" id="contientQuiz" formControlName="contientQuiz">
+            <label for="contientQuiz">Contient un quiz</label>
+          </div>
+          
+          <div class="form-check">
+            <input type="checkbox" id="contientDevoir" formControlName="contientDevoir">
+            <label for="contientDevoir">Contient un devoir</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="fichier">Fichier du chapitre</label>
+          <input type="file" id="fichier" (change)="onFileChange($event)" class="file-input" #fileInput hidden>
+          <div class="file-input-wrapper">
+            <span class="file-name">{{ chapitreForm.get('fichier')?.value || 'Aucun fichier sélectionné' }}</span>
+            <button type="button" class="file-button" (click)="fileInput.click()">Parcourir</button>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" (click)="hideModal()">Annuler</button>
+      <button type="button" class="btn-primary" [disabled]="!chapitreForm.valid" (click)="submitChapitreForm()">
+        <i class="fas fa-save"></i> Enregistrer le chapitre
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de modification de chapitre -->
+<div class="modal-overlay" *ngIf="activeModal === 'editChapitre'">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2>Modifier le chapitre</h2>
+      <button class="close-button" (click)="hideModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form [formGroup]="editChapitreForm">
+        <div class="form-group">
+          <label for="edit-titre">Titre du chapitre *</label>
+          <input type="text" id="edit-titre" formControlName="titre" placeholder="Entrez le titre du chapitre">
+        </div>
+
+        <div class="form-group">
+          <label for="edit-numero">Numéro du chapitre *</label>
+          <input type="number" id="edit-numero" formControlName="numero" placeholder="Entrez le numéro du chapitre" min="1">
+        </div>
+
+        <div class="form-group">
+          <label for="edit-description">Description du chapitre *</label>
+          <textarea id="edit-description" formControlName="description" rows="5" placeholder="Entrez une description détaillée du chapitre"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-nombreSeances">Nombre de séances *</label>
+          <input type="number" id="edit-nombreSeances" formControlName="nombreSeances" placeholder="Entrez le nombre de séances" min="1">
+        </div>
+
+        <div class="form-group">
+          <label for="edit-lienClassroom">Lien Classroom</label>
+          <input type="url" id="edit-lienClassroom" formControlName="lienClassroom" placeholder="Entrez le lien Google Classroom">
+        </div>
+
+        <div class="form-row">
+          <div class="form-check">
+            <input type="checkbox" id="edit-contientQuiz" formControlName="contientQuiz">
+            <label for="edit-contientQuiz">Contient un quiz</label>
+          </div>
+          
+          <div class="form-check">
+            <input type="checkbox" id="edit-contientDevoir" formControlName="contientDevoir">
+            <label for="edit-contientDevoir">Contient un devoir</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-fichier">Fichier du chapitre</label>
+          <input type="file" id="edit-fichier" (change)="onEditFileChange($event)" class="file-input" #editFileInput hidden>
+          <div class="file-input-wrapper">
+            <span class="file-name">{{ editChapitreForm.get('fichier')?.value || 'Aucun fichier sélectionné' }}</span>
+            <button type="button" class="file-button" (click)="editFileInput.click()">Parcourir</button>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" (click)="hideModal()">Annuler</button>
+      <button type="button" class="btn-primary" [disabled]="!editChapitreForm.valid" (click)="submitEditChapitreForm()">
+        <i class="fas fa-save"></i> Enregistrer les modifications
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de visualisation de chapitre -->
+<div class="modal-overlay" *ngIf="activeModal === 'viewChapitre'">
+  <div class="modal-container modal-elegant">
+    <!-- Simplified elegant header -->
+    <div class="modal-header-elegant-simple">
+      <div class="header-content-simple">
+        <span class="chapter-number">Chapitre {{ selectedChapitre?.numero }}</span>
+        <h2>{{ selectedChapitre?.titre }}</h2>
+      </div>
+      <button class="close-button-elegant-simple" (click)="hideModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-body-elegant">
+      <!-- Status badges -->
+      <div class="status-badges">
+        <div class="badge-elegant" *ngIf="selectedChapitre?.contientQuiz">
+          <i class="fas fa-question-circle"></i>
+          <span>Quiz inclus</span>
+        </div>
+        <div class="badge-elegant" *ngIf="selectedChapitre?.contientDevoir">
+          <i class="fas fa-tasks"></i>
+          <span>Devoir inclus</span>
+        </div>
+        <div class="badge-elegant">
+          <i class="fas fa-clock"></i>
+          <span>{{ selectedChapitre?.nombreSeances }} séance(s)</span>
+        </div>
+      </div>
+      
+      <!-- Description section -->
+      <div class="content-section">
+        <div class="section-title">
+          <div class="title-icon"><i class="fas fa-align-left"></i></div>
+          <h3>Description</h3>
+        </div>
+        <div class="section-content description-content">
+          <p>{{ selectedChapitre?.description }}</p>
+        </div>
+      </div>
+      
+      <!-- Timeline section -->
+      <div class="content-section">
+        <div class="section-title">
+          <div class="title-icon"><i class="fas fa-history"></i></div>
+          <h3>Chronologie</h3>
+        </div>
+        <div class="section-content">
+          <div class="timeline">
+            <div class="timeline-item" *ngIf="selectedChapitre?.dateCreation">
+              <div class="timeline-point"></div>
+              <div class="timeline-content">
+                <h4>Création</h4>
+                <p>{{ formatDate(selectedChapitre.dateCreation) }}</p>
+              </div>
+            </div>
+            <div class="timeline-item" *ngIf="selectedChapitre?.dateModification">
+              <div class="timeline-point"></div>
+              <div class="timeline-content">
+                <h4>Dernière modification</h4>
+                <p>{{ formatDate(selectedChapitre.dateModification) }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Resources section -->
+      <div class="content-section" *ngIf="selectedChapitre?.lienMeet || selectedChapitre?.fichierNom">
+        <div class="section-title">
+          <div class="title-icon"><i class="fas fa-link"></i></div>
+          <h3>Ressources</h3>
+        </div>
+        <div class="section-content">
+          <!-- Meet link -->
+          <div class="resource-card" *ngIf="selectedChapitre?.lienMeet">
+            <div class="resource-icon">
+              <i class="fas fa-video"></i>
+            </div>
+            <div class="resource-content">
+              <h4>Lien de visioconférence</h4>
+              <a [href]="selectedChapitre.lienMeet" target="_blank" class="resource-link">
+                <span>{{ selectedChapitre.lienMeet }}</span>
+                <i class="fas fa-external-link-alt"></i>
+              </a>
+            </div>
+          </div>
+          
+          <!-- Document -->
+          <div class="resource-card" *ngIf="selectedChapitre?.fichierNom || selectedChapitre?.fichierPath">
+            <div class="resource-icon document-icon">
+              <i class="fas fa-file-pdf"></i>
+            </div>
+            <div class="resource-content">
+              <h4>Document du cours</h4>
+              <p class="document-name">{{ selectedChapitre?.fichierNom || 'Document PDF' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-footer-elegant">
+      <button class="btn-elegant btn-secondary-elegant" (click)="hideModal()">
+        <span>Fermer</span>
+      </button>
+      <button class="btn-elegant btn-primary-elegant" (click)="editChapitre(selectedChapitre)">
+        <i class="fas fa-edit"></i>
+        <span>Modifier</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal-overlay" *ngIf="activeModal === 'confirmDelete'">
+  <div class="modal-container modal-small">
+    <div class="modal-header">
+      <h2>Confirmer la suppression</h2>
+      <button class="close-button" (click)="hideModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-delete">
+        <div class="warning-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <p>Êtes-vous sûr de vouloir supprimer le chapitre <strong>"{{ chapitreToDelete?.titre }}"</strong> ?</p>
+        <p class="warning-text">Cette action est irréversible.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="hideModal()">Annuler</button>
+      <button class="btn-danger" (click)="deleteChapitre()">
+        <i class="fas fa-trash-alt"></i> Supprimer
+      </button>
+    </div>
+  </div>
+</div>

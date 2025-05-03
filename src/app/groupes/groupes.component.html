@@ -1,0 +1,286 @@
+<div class="groupes-container">
+  <!-- En-tête avec titre et actions -->
+  <div class="header-section">
+    <div class="header-title">
+      <h1><i class="fas fa-users"></i> Gestion des Filières</h1>
+      <p class="header-subtitle">Gérez les filières d'étudiants et leurs groupes</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="showModal('filiere')">
+        <i class="fas fa-plus"></i> Nouvelle filière
+      </button>
+    </div>
+  </div>
+
+  <!-- Message d'erreur global -->
+  <div class="error-alert" *ngIf="error">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>{{ error }}</p>
+    <button class="close-button" (click)="error = null">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <!-- Section de filtrage -->
+  <div class="filters-section">
+    <div class="filters-header">
+      <h2><i class="fas fa-filter"></i> Filtres</h2>
+      <button class="btn btn-outline" (click)="resetFilters()">
+        <i class="fas fa-undo"></i> Réinitialiser
+      </button>
+    </div>
+    <div class="filters-body">
+      <form [formGroup]="filterForm">
+        <div class="filters-form">
+          <div class="filter-group">
+            <label for="departementFilter">Département</label>
+            <select id="departementFilter" formControlName="departement">
+              <option value="">Tous les départements</option>
+              <option *ngFor="let dept of departments" [value]="dept._id">
+                {{ dept.name }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label for="niveauFilter">Niveau</label>
+            <select id="niveauFilter" formControlName="niveau">
+              <option value="">Tous les niveaux</option>
+              <option *ngFor="let niveau of niveaux" [value]="niveau._id">
+                {{ niveau.name }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label for="specialiteFilter">Spécialité</label>
+            <select id="specialiteFilter" formControlName="specialite" [disabled]="!filterForm.get('departement')?.value">
+              <option value="">Toutes les spécialités</option>
+              <option *ngFor="let spec of filteredSpecialties" [value]="spec._id">
+                {{ spec.name }}
+              </option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="search-container">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Rechercher une filière..." [(ngModel)]="searchTerm" [ngModelOptions]="{standalone: true}">
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Liste des filières -->
+  <div class="filieres-list">
+    <div class="loading-container" *ngIf="loading">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">Chargement des filières...</p>
+    </div>
+    
+    <div class="empty-state" *ngIf="!loading && filteredFilieres.length === 0">
+      <i class="fas fa-search"></i>
+      <h3>Aucune filière trouvée</h3>
+      <p>Essayez de modifier vos critères de recherche ou créez une nouvelle filière.</p>
+      <button class="btn btn-primary" (click)="showModal('filiere')">
+        <i class="fas fa-plus"></i> Créer une filière
+      </button>
+    </div>
+    
+    <div class="filieres-grid" *ngIf="!loading && filteredFilieres.length > 0">
+      <div class="filiere-card" *ngFor="let filiere of filteredFilieres" (click)="viewFiliereDetails(filiere)">
+        <div class="filiere-card-header">
+          <h3>{{ filiere.name }}</h3>
+          <div class="filiere-actions">
+            <button class="btn-icon" [routerLink]="['/admin/filieres/edit', filiere._id]" (click)="$event.stopPropagation()">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn-icon delete" (click)="deleteFiliere(filiere._id!, $event)">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div class="filiere-card-body">
+          <div class="filiere-info">
+            <div class="info-row">
+              <div class="info-item">
+                <span class="info-label">Département</span>
+                <span class="info-value">{{ getDepartmentName(filiere.departement) }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Niveau</span>
+                <span class="info-value">{{ getLevelName(filiere.niveau) }}</span>
+              </div>
+            </div>
+            
+            <div class="info-row" *ngIf="filiere.specialite">
+              <div class="info-item">
+                <span class="info-label">Spécialité</span>
+                <span class="info-value">{{ getSpecialtyName(filiere.specialite) }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="filiere-stats">
+            <div class="stats-item">
+              <div class="stats-header">
+                <span class="stats-label">Groupes</span>
+                <span class="badge">{{ filiere.groupes.length || 0 }}</span>
+              </div>
+            </div>
+            
+            <div class="stats-item">
+              <div class="stats-header">
+                <span class="stats-label">Étudiants</span>
+                <span class="stats-value">{{ getFiliereStatsValue(filiere) }}</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress" 
+                     [style.width.%]="getFiliereOccupancyPercentage(filiere)"
+                     [ngClass]="getProgressBarClass(getFiliereOccupancyPercentage(filiere))">
+                </div>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de création/édition de filière -->
+  <div class="modal-overlay" *ngIf="activeModal === 'filiere'">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2><i class="fas fa-users-cog"></i> Créer une nouvelle filière</h2>
+        <button class="close-button" (click)="hideModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="filiereForm" (ngSubmit)="submitForm()">
+          <!-- Section sélection du niveau et spécialité -->
+          <div class="form-section">
+            <h3><i class="fas fa-layer-group"></i> Niveau et Spécialité</h3>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label for="filiereDepartment">Département <span class="required">*</span></label>
+                <select id="filiereDepartment" formControlName="department">
+                  <option value="">Sélectionnez un département</option>
+                  <option *ngFor="let dept of departments" [value]="dept._id">
+                    {{ dept.name }}
+                  </option>
+                </select>
+                <div *ngIf="filiereForm.get('department')?.invalid && filiereForm.get('department')?.touched" class="error-message">
+                  <i class="fas fa-exclamation-circle"></i> Le département est requis
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label for="filiereLevel">Niveau <span class="required">*</span></label>
+                <select id="filiereLevel" formControlName="level">
+                  <option value="">Sélectionnez un niveau</option>
+                  <option *ngFor="let niveau of niveaux" [value]="niveau._id">
+                    {{ niveau.name }}
+                  </option>
+                </select>
+                <div *ngIf="filiereForm.get('level')?.invalid && filiereForm.get('level')?.touched" class="error-message">
+                  <i class="fas fa-exclamation-circle"></i> Le niveau est requis
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="filiereSpecialty">Spécialité <span class="required">*</span></label>
+                <select id="filiereSpecialty" formControlName="specialty" [disabled]="!filiereForm.get('level')?.value || !filiereForm.get('department')?.value">
+                  <option value="">{{ filteredSpecialtiesForFilieres.length === 0 ? 'Aucune spécialité disponible' : 'Sélectionnez une spécialité' }}</option>
+                  <option *ngFor="let spec of filteredSpecialtiesForFilieres" [value]="spec._id">
+                    {{ spec.name }}
+                  </option>
+                </select>
+                <div *ngIf="filiereForm.get('specialty')?.invalid && filiereForm.get('specialty')?.touched" class="error-message">
+                  <i class="fas fa-exclamation-circle"></i> La spécialité est requise
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section informations de la filière -->
+          <div class="form-section">
+            <h3><i class="fas fa-info-circle"></i> Informations de la filière</h3>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label for="filiereNumber">Numéro de la filière <span class="required">*</span></label>
+                <input type="number" id="filiereNumber" formControlName="filiereNumber" min="1" max="10">
+                <div *ngIf="filiereForm.get('filiereNumber')?.invalid && filiereForm.get('filiereNumber')?.touched" class="error-message">
+                  <i class="fas fa-exclamation-circle"></i> Le numéro de la filière est requis (entre 1 et 10)
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="maxStudents">Nombre maximum d'étudiants</label>
+                <input type="number" id="maxStudents" formControlName="maxStudents" value="120" readonly>
+                <div class="info-text">
+                  <i class="fas fa-info-circle"></i> Capacité totale de 120 étudiants (4 groupes de 30)
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section groupes -->
+          <div class="form-section">
+            <h3><i class="fas fa-sitemap"></i> Groupes</h3>
+            <div class="info-alert">
+              <i class="fas fa-info-circle"></i>
+              <p>Les groupes sont automatiquement créés en fonction du numéro de filière (ex: 1.1, 1.2, 1.3, 1.4). Chaque filière contient 4 groupes, et chaque groupe a une capacité maximale de 30 étudiants.</p>
+            </div>
+            
+            <div class="groupes-preview" *ngIf="groupes.length > 0">
+              <div *ngFor="let groupe of groupes" class="groupe-item">
+                <div class="groupe-header">
+                  <div class="groupe-name">Groupe {{ groupe }}</div>
+                  <div class="groupe-badge">30 places</div>
+                </div>
+                <div class="groupe-body">
+                  <div class="groupe-icon">
+                    <i class="fas fa-users"></i>
+                  </div>
+                  <div class="groupe-info">
+                    <div class="groupe-capacity">
+                      <span class="capacity-label">Capacité maximale:</span>
+                      <span class="capacity-value">30 étudiants</span>
+                    </div>
+                    <div class="groupe-status">
+                      <span class="status-label">Statut:</span>
+                      <span class="status-value">Prêt à recevoir des étudiants</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="empty-state" *ngIf="groupes.length === 0">
+              <i class="fas fa-sitemap"></i>
+              <p>Sélectionnez un numéro de filière pour générer les groupes</p>
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" (click)="hideModal()">
+              <i class="fas fa-times"></i> Annuler
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="filiereForm.invalid || submitting">
+              <i class="fas" [ngClass]="submitting ? 'fa-spinner fa-spin' : 'fa-save'"></i>
+              <span *ngIf="submitting">Enregistrement...</span>
+              <span *ngIf="!submitting">Enregistrer</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

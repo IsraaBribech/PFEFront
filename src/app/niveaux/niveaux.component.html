@@ -1,0 +1,226 @@
+<div class="niveaux-container">
+  <!-- Header Section -->
+  <div class="niveaux-header">
+    <h1>Gestion des Niveaux</h1>
+    <button class="btn-add" (click)="showModal('level')">
+      <i class="fas fa-plus"></i> Ajouter un niveau
+    </button>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filter-section">
+    <div class="filter-container">
+      <!-- Département Filter -->
+      <div class="filter-group">
+        <label for="departmentFilter">Département</label>
+        <select id="departmentFilter" [(ngModel)]="selectedDepartmentFilter" (change)="applyFilters()">
+          <option value="">Tous les départements</option>
+          <option *ngFor="let dept of departments" [value]="dept._id">{{dept.name}}</option>
+        </select>
+      </div>
+
+      <!-- Recherche -->
+      <div class="filter-group">
+        <label for="searchFilter">Recherche</label>
+        <input 
+        type="text" 
+        id="searchFilter" 
+        placeholder="Rechercher un niveau..."
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="onSearchInput($event)">
+      </div>
+
+      <!-- Reset Filters -->
+      <div class="filter-group">
+        <button class="btn-reset" (click)="resetFilters()">
+          <i class="fas fa-undo"></i> Réinitialiser
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <i class="fas fa-spinner fa-spin"></i> Chargement en cours...
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-state">
+    <i class="fas fa-exclamation-triangle"></i> {{error}}
+  </div>
+
+  <!-- Liste des Niveaux -->
+  <div class="niveaux-content">
+    <div class="niveaux-list">
+      <!-- Niveau Item - Repeat for each level -->
+      <div class="niveau-list-item" *ngFor="let niveau of filteredNiveaux">
+        <div class="niveau-list-indicator" [style.background-color]="niveau.couleur || '#6a11cb'"></div>
+        <div class="niveau-list-content">
+          <div class="niveau-list-main-info">
+            <div class="niveau-list-title">
+              {{niveau.name}}
+              <span class="niveau-list-badge" > {{getDepartmentName(niveau.departement)}}</span>
+            </div>
+            <div class="niveau-list-description">
+              {{niveau.description || 'Aucune description disponible'}}
+            </div>
+      
+          </div>
+          
+          <div class="niveau-list-stats">
+            <div class="niveau-list-stat">
+              <div class="niveau-list-stat-icon">
+                <i class="fas fa-user"></i>
+              </div>
+              <div>
+                <div class="niveau-list-stat-value">{{niveau.nbEtudiants || 0}}</div>
+                <div class="niveau-list-stat-label">Étudiants</div>
+              </div>
+            </div>
+            <div class="niveau-list-stat">
+              <div class="niveau-list-stat-icon">
+                <i class="fas fa-graduation-cap"></i>
+              </div>
+              <div>
+                <div class="niveau-list-stat-value">{{getSpecialitesForNiveau(niveau._id).length}}</div>
+                <div class="niveau-list-stat-label">Spécialités</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="niveau-list-actions">
+            <button class="niveau-list-action-btn" (click)="editNiveau(niveau)">
+              <i class="fas fa-edit"></i> Modifier
+            </button>
+            <button class="niveau-list-action-btn delete" (click)="deleteNiveau(niveau._id)">
+              <i class="fas fa-trash"></i> Supprimer
+            </button>
+          
+          </div>
+
+
+    </div>
+  </div>
+</div>
+
+<!-- Level Modal -->
+<div class="modal-overlay" *ngIf="activeModal === 'level'">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2>
+        {{isEditing ? 'Modifier' : 'Ajouter'}} un niveau
+      </h2>
+      <button class="close-button" (click)="hideModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form [formGroup]="levelForm" (ngSubmit)="submitForm('level')">
+        <div class="form-group">
+          <label for="levelName">Nom du niveau</label>
+          <input 
+            type="text" 
+            id="levelName" 
+            formControlName="name" 
+            placeholder="Entrez le nom du niveau"
+          >
+          <div *ngIf="levelForm.get('name')?.invalid && levelForm.get('name')?.touched" class="error-message">
+            Le nom du niveau est requis
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="levelDescription">Description</label>
+          <textarea 
+            id="levelDescription" 
+            formControlName="description" 
+            placeholder="Entrez une description"
+          ></textarea>
+        </div>
+        <div class="form-group">
+          <label for="levelColor">Couleur</label>
+          <input 
+            type="color" 
+            id="levelColor" 
+            formControlName="couleur"
+          >
+        </div>
+        <div class="form-group">
+          <label for="levelDepartment">Département</label>
+          <select id="levelDepartment" formControlName="departement"> <!-- Changé ici -->
+            <option value="">Sélectionnez un département</option>
+            <option *ngFor="let dept of departments" [value]="dept._id">{{dept.name}}</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="hideModal()">
+            Annuler
+          </button>
+          <button 
+            type="submit" 
+            class="btn-primary" 
+            [disabled]="levelForm.invalid"
+          >
+            {{isEditing ? 'Modifier' : 'Ajouter'}}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Specialty Modal -->
+<div class="modal-overlay" *ngIf="activeModal === 'specialty'">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2>
+        {{editingSpecialty ? 'Modifier' : 'Ajouter'}} une spécialité
+      </h2>
+      <button class="close-button" (click)="hideModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form [formGroup]="specialtyForm" (ngSubmit)="submitForm('specialty')">
+        <div class="form-group">
+          <label for="specialtyName">Nom de la spécialité</label>
+          <input 
+            type="text" 
+            id="specialtyName" 
+            formControlName="nom" 
+            placeholder="Entrez le nom de la spécialité"
+          >
+          <div *ngIf="specialtyForm.get('nom')?.invalid && specialtyForm.get('nom')?.touched" class="error-message">
+            Le nom de la spécialité est requis
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="specialtyDescription">Description</label>
+          <textarea 
+            id="specialtyDescription" 
+            formControlName="description" 
+            placeholder="Entrez une description"
+          ></textarea>
+        </div>
+        <div class="form-group">
+          <label for="specialtyDepartment">Département</label>
+          <select id="specialtyDepartment" formControlName="departementId">
+            <option value="">Sélectionnez un département</option>
+            <option *ngFor="let dept of departments" [value]="dept._id">{{dept.name}}</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="hideModal()">
+            Annuler
+          </button>
+          <button 
+            type="submit" 
+            class="btn-primary" 
+            [disabled]="specialtyForm.invalid"
+          >
+            {{editingSpecialty ? 'Modifier' : 'Ajouter'}}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

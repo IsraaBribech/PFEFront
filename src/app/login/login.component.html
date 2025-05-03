@@ -1,0 +1,101 @@
+<div class="login-container">
+  <!-- Vidéo en arrière-plan (taille réduite) -->
+  <div class="video-background">
+    <video autoplay loop muted playsinline class="background-video" id="loginVideo">
+      <source src="assets/videos/vedioL.mp4" type="video/mp4">
+      Votre navigateur ne supporte pas la lecture de vidéos.
+    </video>
+    <div class="video-overlay"></div>
+  </div>
+
+  <!-- Fond blanc pour la partie droite -->
+  <div class="right-background"></div>
+
+  <!-- Particules flottantes -->
+  <div class="particles">
+    <div class="particle" style="left: 10%; animation-delay: 0s;"></div>
+    <div class="particle" style="left: 20%; animation-delay: 2s;"></div>
+    <div class="particle" style="left: 30%; animation-delay: 4s;"></div>
+    <div class="particle" style="left: 40%; animation-delay: 6s;"></div>
+    <div class="particle" style="left: 50%; animation-delay: 8s;"></div>
+    <div class="particle" style="left: 60%; animation-delay: 10s;"></div>
+    <div class="particle" style="left: 70%; animation-delay: 12s;"></div>
+    <div class="particle" style="left: 80%; animation-delay: 14s;"></div>
+    <div class="particle" style="left: 90%; animation-delay: 16s;"></div>
+  </div>
+
+  <!-- Formulaire compact vertical -->
+  <div class="login-card">
+    <div class="login-form-section">
+      <div class="login-header">
+        <h2>Connexion</h2>
+        <p>Veuillez vous connecter pour continuer</p>
+      </div>
+
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+        <div class="form-group">
+          <label for="identifier">Email ou CIN</label>
+          <div class="input-with-icon">
+            <input 
+              type="text" 
+              id="identifier" 
+              formControlName="identifier" 
+              placeholder="Entrez votre email ou CIN"
+              [ngClass]="{'is-invalid': f['identifier'].touched && f['identifier'].invalid}"
+            >
+            <i class="material-icons">person</i>
+          </div>
+          <div class="error-message" *ngIf="f['identifier'].touched && f['identifier'].errors">
+            <i class="material-icons">error_outline</i>
+            <span *ngIf="f['identifier'].errors['required']">Identifiant requis</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Mot de passe</label>
+          <div class="input-with-icon">
+            <input 
+              [type]="hidePassword ? 'password' : 'text'" 
+              id="password" 
+              formControlName="password" 
+              placeholder="Entrez votre mot de passe"
+              [ngClass]="{'is-invalid': f['password'].touched && f['password'].invalid}"
+            >
+            <i class="material-icons">lock</i>
+            <button type="button" class="toggle-password" (click)="hidePassword = !hidePassword">
+              <i class="material-icons">{{ hidePassword ? 'visibility' : 'visibility_off' }}</i>
+            </button>
+          </div>
+          <div class="error-message" *ngIf="f['password'].touched && f['password'].errors">
+            <i class="material-icons">error_outline</i>
+            <span *ngIf="f['password'].errors['required']">Mot de passe requis</span>
+            <span *ngIf="f['password'].errors['minlength']">Minimum 6 caractères</span>
+          </div>
+        </div>
+
+        <div class="options-row">
+          <div class="remember-me">
+            <input type="checkbox" id="remember" formControlName="rememberMe">
+            <label for="remember">Se souvenir de moi</label>
+          </div>
+          <a href="#" class="forgot-password" (click)="forgotPassword(); $event.preventDefault()">Mot de passe oublié?</a>
+        </div>
+
+        <div class="form-group">
+          <button 
+            type="submit" 
+            class="btn-login" 
+            [disabled]="loginForm.invalid || isSubmitting"
+          >
+            <span *ngIf="isSubmitting" class="spinner"></span>
+            <span>{{ isSubmitting ? 'Connexion en cours...' : 'Se connecter' }}</span>
+          </button>
+          <div class="error-message text-center" *ngIf="errorMessage">
+            <i class="material-icons">error_outline</i>
+            {{ errorMessage }}
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

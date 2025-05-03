@@ -1,0 +1,466 @@
+<div class="enseignant-container">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <img src="assets/images/isg.png" alt="Logo ISG EduLink" class="logo">
+        <span class="logo-text">ISG EduLink</span>
+      </div>
+      <!-- Bouton de profil -->
+      <button class="profile-button" routerLink="/troixieme-interface/eduprofil">
+        <div class="enseignant-avatar">{{ etudiantName[0] }}</div>
+        <div class="enseignant-details">
+          <h3>{{ etudiantName }}</h3>
+          <p>{{ etudiantEmail }}</p>
+        </div>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <ul>
+        <li routerLink="/troixieme-interface" routerLinkActive="active">
+          <i class="fas fa-home"></i>
+          <span>Tableau de bord</span>
+        </li>
+        <li routerLink="/troixieme-interface/cour-suivie" routerLinkActive="active">
+          <i class="fas fa-book"></i>
+          <span>Mes cours</span>
+        </li>
+        <li routerLink="/troixieme-interface/devoir-realiser" routerLinkActive="active">
+          <i class="fas fa-tasks"></i>
+          <span>Mes devoirs</span>
+        </li>
+        <li routerLink="/troixieme-interface/quiz-repond" routerLinkActive="active">
+          <i class="fas fa-question-circle"></i>
+          <span>Mes quiz</span>
+        </li>
+        <li routerLink="/troixieme-interface/message-envoyer" routerLinkActive="active">
+          <i class="fas fa-envelope"></i>
+          <span>Forum de discussion</span>
+        </li>
+        <li routerLink="/troixieme-interface/notification" routerLinkActive="active">
+          <i class="fas fa-bell"></i>
+          <span>Notification</span>
+          <span class="badge" *ngIf="getUnreadNotificationsCount()">{{ getUnreadNotificationsCount() }}</span>
+        </li>
+      </ul>
+    </nav>
+    <!-- Bouton de déconnexion -->
+    <div class="logout-container">
+      <button class="logout-button" (click)="logout()">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Déconnexion</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="content-header">
+      <div class="header-title">
+        <h1>Mes quiz</h1>
+      </div>
+      <div class="header-actions">
+        <div class="search-bar">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Rechercher un quiz..." [(ngModel)]="searchTerm" (input)="filterQuizzes()">
+        </div>
+        <!-- Notification avec dropdown - Nouvelle version avec onglets -->
+        <div class="notification-container">
+          <button class="notification-btn" (click)="toggleNotificationDropdown($event)">
+            <i class="fas fa-bell"></i>
+            <span *ngIf="getUnreadNotificationsCount() > 0" class="notification-badge">
+              {{ getUnreadNotificationsCount() }}
+            </span>
+          </button>
+
+          <div class="notification-dropdown" *ngIf="showNotificationDropdown">
+            <div class="notification-header">
+              <h3>Notifications</h3>
+              <span *ngIf="getUnreadNotificationsCount() > 0" class="unread-count">
+                {{ getUnreadNotificationsCount() }} non lues
+              </span>
+            </div>
+
+            <div class="notification-tabs">
+              <button 
+                [class.active]="activeNotificationTab === 'academic'"
+                (click)="setActiveNotificationTab('academic')">
+                Académique {{ getUnreadAcademicNotificationsCount() > 0 ? '(' + getUnreadAcademicNotificationsCount() + ')' : '' }}
+              </button>
+              <button 
+                [class.active]="activeNotificationTab === 'messages'"
+                (click)="setActiveNotificationTab('messages')">
+                Messages {{ getUnreadMessageNotificationsCount() > 0 ? '(' + getUnreadMessageNotificationsCount() + ')' : '' }}
+              </button>
+            </div>
+
+            <div class="notification-content">
+              <!-- Notifications académiques -->
+              <div *ngIf="activeNotificationTab === 'academic'">
+                <div *ngIf="academicNotifications.length === 0" class="no-notifications">
+                  Aucune notification académique
+                </div>
+                <div 
+                  *ngFor="let notification of academicNotifications" 
+                  class="notification-item"
+                  [class.unread]="!notification.read"
+                  (click)="markAcademicNotificationAsRead(notification)">
+                  <div class="notification-icon">
+                    <i class="fas" [ngClass]="getNotificationIcon(notification.type)"></i>
+                  </div>
+                  <div class="notification-content">
+                    <div class="notification-title">{{ notification.title }}</div>
+                    <div class="notification-message">{{ notification.message }}</div>
+                    <div class="notification-time">{{ formatTimeAgo(notification.date) }}</div>
+                  </div>
+                  <div class="notification-status" *ngIf="!notification.read"></div>
+                </div>
+                <button 
+                  *ngIf="academicNotifications.length > 0" 
+                  class="mark-all-read"
+                  (click)="markAllAcademicNotificationsAsRead()">
+                  Marquer tout comme lu
+                </button>
+              </div>
+
+              <!-- Notifications de messages -->
+              <div *ngIf="activeNotificationTab === 'messages'">
+                <div *ngIf="messageNotifications.length === 0" class="no-notifications">
+                  Aucun message
+                </div>
+                <div 
+                  *ngFor="let notification of messageNotifications" 
+                  class="notification-item"
+                  [class.unread]="!notification.read"
+                  (click)="markMessageNotificationAsRead(notification)">
+                  <div class="notification-icon">
+                    <i class="fas fa-comment"></i>
+                  </div>
+                  <div class="notification-content">
+                    <div class="notification-title">{{ notification.title }}</div>
+                    <div class="notification-message">{{ notification.message }}</div>
+                    <div class="notification-time">{{ formatTimeAgo(notification.date) }}</div>
+                  </div>
+                  <div class="notification-status" *ngIf="!notification.read"></div>
+                </div>
+                <button 
+                  *ngIf="messageNotifications.length > 0" 
+                  class="mark-all-read"
+                  (click)="markAllMessageNotificationsAsRead()">
+                  Marquer tout comme lu
+                </button>
+              </div>
+            </div>
+
+            <div class="notification-footer">
+              <button class="view-all" (click)="navigateToNotifications()">
+                Voir toutes les notifications
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenu principal -->
+    <div class="quiz-container">
+      <div class="matieres-section">
+        <!-- Onglets des semestres -->
+        <div class="semester-tabs">
+          <div class="tab" [class.active]="activeSemester === 'semestre1'" (click)="changeSemester('semestre1')">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Semestre 1</span>
+          </div>
+          <div class="tab" [class.active]="activeSemester === 'semestre2'" (click)="changeSemester('semestre2')">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Semestre 2</span>
+          </div>
+        </div>
+        
+        <!-- Contenu du semestre actif -->
+        <div class="semester-content">
+          <!-- Filtres -->
+          <div class="table-header">
+            <div class="table-filters">
+              <div class="filter-group">
+                <label for="matiere-filter">Matière:</label>
+                <select id="matiere-filter" [(ngModel)]="matiereFilter" (change)="filterQuizzes()">
+                  <option value="">Toutes les matières</option>
+                  <option *ngFor="let matiere of getUniqueMatieresForSemester()" [value]="matiere">{{ matiere }}</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="type-filter">Type:</label>
+                <select id="type-filter" [(ngModel)]="typeFilter" (change)="filterQuizzes()">
+                  <option value="">Tous les types</option>
+                  <option value="cours">Cours</option>
+                  <option value="td">TD</option>
+                  <option value="tp">TP</option>
+                </select>
+              </div>
+            </div>
+            <div class="table-actions">
+              <button class="btn-primary" (click)="genererQuizIA()">
+                <i class="fas fa-robot"></i>
+                <span>Générer un Quiz IA</span>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Tableau des quiz -->
+          <div class="table-responsive">
+            <table class="quiz-table">
+              <thead>
+                <tr>
+                  <th (click)="sortTable('enseignant')">
+                    Nom enseignant
+                    <i class="fas" [ngClass]="getSortIcon('enseignant')"></i>
+                  </th>
+                  <th (click)="sortTable('matiere')">
+                    Matière
+                    <i class="fas" [ngClass]="getSortIcon('matiere')"></i>
+                  </th>
+                  <th (click)="sortTable('dateCreation')">
+                    Date dépôt
+                    <i class="fas" [ngClass]="getSortIcon('dateCreation')"></i>
+                  </th>
+                  <th (click)="sortTable('dateLimite')">
+                    Date limite
+                    <i class="fas" [ngClass]="getSortIcon('dateLimite')"></i>
+                  </th>
+                  <th (click)="sortTable('type')">
+                    Type
+                    <i class="fas" [ngClass]="getSortIcon('type')"></i>
+                  </th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let quiz of filteredQuizzes" [ngClass]="getRowClass(quiz)">
+                  <td>
+                    <div class="enseignant-cell">
+                      <div class="enseignant-avatar-small">{{ getEnseignantInitial(quiz) }}</div>
+                      <span>{{ getEnseignantByType(quiz.matiere, quiz.type) }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="matiere-cell">
+                      <div class="matiere-icon-small" [style.background-color]="getMatiereCouleur(quiz.matiere)">
+                        <i class="fas" [ngClass]="getMatiereIcon(quiz.matiere)"></i>
+                      </div>
+                      <span>{{ quiz.matiere }}</span>
+                    </div>
+                  </td>
+                  <td>{{ formatDate(quiz.dateCreation) }}</td>
+                  <td>
+                    <div class="date-cell" [ngClass]="{'date-warning': isCloseToDeadline(quiz), 'date-danger': isLate(quiz)}">
+                      {{ formatDate(quiz.dateLimite) }}
+                      <span *ngIf="!quiz.estTermine && !isLate(quiz)" class="days-left">
+                        {{ getJoursRestants(quiz.dateLimite) }} jour(s)
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="type-badge" [ngClass]="'type-' + quiz.type">
+                      {{ getTypeLabel(quiz.type) }}
+                    </div>
+                  </td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-action btn-submit" [disabled]="quiz.estTermine" (click)="commencerQuiz(quiz)">
+                        <i class="fas fa-play"></i>
+                        <span>Répondre</span>
+                      </button>
+                      <!-- Le bouton de téléchargement a été supprimé ici comme demandé -->
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Message si aucun quiz -->
+          <div *ngIf="filteredQuizzes.length === 0" class="empty-state">
+            <i class="fas fa-question-circle"></i>
+            <h3>Aucun quiz trouvé</h3>
+            <p>Il n'y a pas de quiz correspondant à vos critères de recherche.</p>
+            <button class="btn-primary" (click)="genererQuizIA()">
+              <i class="fas fa-robot"></i> Générer un Quiz IA
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de quiz -->
+<div class="modal-overlay" *ngIf="showQuizModal" (click)="closeQuizModal($event)">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3>{{ selectedQuiz?.titre }}</h3>
+      <button class="modal-close" (click)="closeQuizModal($event)">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div *ngIf="selectedQuiz" class="quiz-details">
+        <div class="quiz-info">
+          <h4>{{ selectedQuiz.titre }}</h4>
+          <p>{{ selectedQuiz.description }}</p>
+          <div class="quiz-meta">
+            <div class="meta-item">
+              <i class="fas fa-book"></i>
+              <span>{{ selectedQuiz.matiere }}</span>
+            </div>
+            <div class="meta-item">
+              <i class="fas fa-user-tie"></i>
+              <span>{{ getEnseignantByType(selectedQuiz.matiere, selectedQuiz.type) }}</span>
+            </div>
+            <div class="meta-item">
+              <i class="fas fa-layer-group"></i>
+              <span>{{ getTypeLabel(selectedQuiz.type) }}</span>
+            </div>
+            <div class="meta-item">
+              <i class="fas fa-calendar-check"></i>
+              <span>Date limite: {{ formatDate(selectedQuiz.dateLimite) }}</span>
+            </div>
+            <div class="meta-item">
+              <i class="fas fa-clock"></i>
+              <span>Durée: {{ selectedQuiz.duree }} minutes</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Questions du quiz -->
+        <div *ngIf="quizStarted" class="quiz-questions">
+          <div class="quiz-progress">
+            <div class="progress-text">Question {{ currentQuestion + 1 }} sur {{ selectedQuiz.questions.length }}</div>
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="(currentQuestion + 1) / selectedQuiz.questions.length * 100"></div>
+            </div>
+          </div>
+          
+          <div class="question-container">
+            <div class="question-content">
+              <h3>{{ selectedQuiz.questions[currentQuestion].texte }}</h3>
+              
+              <!-- Question à choix unique -->
+              <div *ngIf="selectedQuiz.questions[currentQuestion].type === 'choix_unique'" class="options-list">
+                <div *ngFor="let option of selectedQuiz.questions[currentQuestion].options" class="option-item">
+                  <label class="option-label">
+                    <input type="radio" name="question{{ currentQuestion }}" [value]="option.id" 
+                           [checked]="isOptionSelected(selectedQuiz.questions[currentQuestion].id, option.id)"
+                           (change)="onChoixUnique(selectedQuiz.questions[currentQuestion].id, option.id)">
+                    <span class="option-text">{{ option.texte }}</span>
+                  </label>
+                </div>
+              </div>
+              
+              <!-- Question à choix multiple -->
+              <div *ngIf="selectedQuiz.questions[currentQuestion].type === 'choix_multiple'" class="options-list">
+                <div *ngFor="let option of selectedQuiz.questions[currentQuestion].options" class="option-item">
+                  <label class="option-label">
+                    <input type="checkbox" [value]="option.id" 
+                           [checked]="isOptionChecked(selectedQuiz.questions[currentQuestion].id, option.id)"
+                           (change)="onChoixMultiple(selectedQuiz.questions[currentQuestion].id, option.id, $event)">
+                    <span class="option-text">{{ option.texte }}</span>
+                  </label>
+                </div>
+              </div>
+              
+              <!-- Question à réponse textuelle -->
+              <div *ngIf="selectedQuiz.questions[currentQuestion].type === 'texte'" class="text-answer">
+                <textarea rows="6" placeholder="Entrez votre réponse ici..."
+                          [(ngModel)]="selectedQuiz.questions[currentQuestion].reponseUtilisateur"
+                          (input)="onTextareaInput($event, selectedQuiz.questions[currentQuestion].id)"></textarea>
+              </div>
+            </div>
+            
+            <div class="question-navigation">
+              <button class="btn-secondary" [disabled]="currentQuestion === 0" (click)="previousQuestion()">
+                <i class="fas fa-arrow-left"></i> Question précédente
+              </button>
+              <button *ngIf="currentQuestion < selectedQuiz.questions.length - 1" class="btn-primary" (click)="nextQuestion()">
+                Question suivante <i class="fas fa-arrow-right"></i>
+              </button>
+              <button *ngIf="currentQuestion === selectedQuiz.questions.length - 1" class="btn-success" (click)="terminerQuiz()">
+                Terminer le quiz <i class="fas fa-check"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Résumé du quiz terminé -->
+        <div *ngIf="quizCompleted" class="quiz-summary">
+          <div class="summary-header">
+            <h3>Quiz terminé</h3>
+            <div class="summary-score">
+              <div class="score-label">Votre score estimé:</div>
+              <div class="score-value">{{ selectedQuiz.score }}%</div>
+              <div class="score-bar">
+                <div class="score-fill" [style.width.%]="selectedQuiz.score"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="summary-details">
+            <p>Vous avez terminé le quiz. Voici un résumé de vos réponses:</p>
+            
+            <div class="questions-summary">
+              <div *ngFor="let question of selectedQuiz.questions; let i = index" class="question-summary">
+                <div class="question-number">Question {{ i + 1 }}</div>
+                <div class="question-text">{{ question.texte }}</div>
+                
+                <div *ngIf="question.type === 'choix_unique'" class="answer-summary">
+                  <div class="answer-label">Votre réponse:</div>
+                  <div class="answer-value">
+                    {{ question.reponseUtilisateur ? getOptionTexte(question, question.reponseUtilisateur) : 'Non répondu' }}
+                  </div>
+                </div>
+                
+                <div *ngIf="question.type === 'choix_multiple'" class="answer-summary">
+                  <div class="answer-label">Vos réponses:</div>
+                  <div class="answer-value">
+                    <div *ngIf="hasResponses(question)">
+                      <div *ngFor="let reponseId of getResponseArray(question)">
+                        {{ getOptionTexte(question, reponseId) }}
+                      </div>
+                    </div>
+                    <div *ngIf="!hasResponses(question)">
+                      Non répondu
+                    </div>
+                  </div>
+                </div>
+                
+                <div *ngIf="question.type === 'texte'" class="answer-summary">
+                  <div class="answer-label">Votre réponse:</div>
+                  <div class="answer-value">
+                    {{ question.reponseUtilisateur ? question.reponseUtilisateur : 'Non répondu' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button *ngIf="!quizStarted && !quizCompleted" class="btn-primary" (click)="startQuiz()">
+        <i class="fas fa-play"></i> Commencer le quiz
+      </button>
+      <button *ngIf="quizCompleted" class="btn-secondary" (click)="closeQuizModal($event)">
+        <i class="fas fa-times"></i> Fermer
+      </button>
+      <button *ngIf="quizCompleted" class="btn-primary" [disabled]="isSubmitting" (click)="soumettreQuiz()">
+        <i class="fas" [ngClass]="isSubmitting ? 'fa-spinner fa-spin' : 'fa-paper-plane'"></i>
+        {{ isSubmitting ? 'Envoi en cours...' : 'Soumettre le quiz' }}
+      </button>
+    </div>
+    
+    <div class="confirmation-message" *ngIf="confirmationMessage">
+      <i class="fas fa-check-circle"></i>
+      <span>{{ confirmationMessage }}</span>
+    </div>
+  </div>
+</div>

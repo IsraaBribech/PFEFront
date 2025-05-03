@@ -1,0 +1,810 @@
+<!-- admin.component.html -->
+<div class="admin-container">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <span class="logo-icon">A</span>
+        <span class="logo-text">AdminDash</span>
+      </div>
+      <div class="admin-info">
+        <div class="admin-avatar"></div>
+        <div class="admin-details">
+          <h3>malak</h3>
+          <p>meeleek0909gmail.com</p>
+        </div>
+      </div>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <ul>
+        <li routerLink="/admin"><i class="fas fa-tachometer-alt"></i> Tableau de bord</li>
+        <li class="has-submenu">
+          <div class="menu-item" (click)="toggleSubmenu($event)">
+            <i class="fas fa-users"></i> Utilisateurs <i class="fas fa-chevron-down submenu-icon"></i>
+          </div>
+          <ul class="submenu">
+            <li routerLink="/enseignants"><i class="fas fa-chalkboard-teacher"></i> Enseignants</li>
+            <li routerLink="/etudiants"><i class="fas fa-user-graduate"></i> Etudiants</li>
+          </ul>
+        </li>
+        <li routerLink="/niveaux"><i class="fas fa-layer-group"></i> Niveaux</li>
+        <li routerLink="/specialites"><i class="fas fa-graduation-cap"></i> Spécialités</li>
+        <li routerLink="/departements"><i class="fas fa-building"></i> Départements</li>
+        <li routerLink="/cours"><i class="fas fa-book-open"></i> Cours</li>
+        <li routerLink="/notifications"><i class="fas fa-bell"></i> Envoyer Notification</li>
+      </ul>
+    </nav>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <header class="content-header">
+      <div class="header-title"></div>
+      <div class="header-actions">
+        <div class="search-bar">
+          <input type="text" placeholder="Rechercher...">
+          <i class="fas fa-search"></i>
+        </div>
+        <div class="notification-icon">
+          <i class="fas fa-bell"></i>
+          <span class="badge">3</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Dashboard Section -->
+    <div class="content-body">
+      <div class="stats-cards">
+        <div class="stat-card">
+          <div class="stat-icon users"><i class="fas fa-users"></i></div>
+          <div class="stat-info">
+            <p>Utilisateurs</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon levels"><i class="fas fa-layer-group"></i></div>
+          <div class="stat-info">
+            <p>Niveaux</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon specialties"><i class="fas fa-graduation-cap"></i></div>
+          <div class="stat-info">
+            <p>Spécialités</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon departments"><i class="fas fa-building"></i></div>
+          <div class="stat-info">
+            <p>Départements</p>
+          </div>
+        </div>
+
+      </div>
+
+      
+
+      <div class="quick-actions">
+        <h2>Actions rapides</h2>
+        <div class="actions-grid">
+          <button (click)="showModal('enseign')">
+            <i class="fas fa-chalkboard-teacher"></i>
+            Ajouter un Enseignant
+          </button>
+          <button (click)="showModal('user')">
+            <i class="fas fa-user-graduate"></i>
+            Ajouter un Etudiant
+          </button>
+          <button (click)="showModal('level')">
+            <i class="fas fa-layer-group"></i>
+            Ajouter un niveau
+          </button>
+          <button (click)="showModal('specialty')">
+            <i class="fas fa-graduation-cap"></i>
+            Ajouter une spécialité
+          </button>
+          <button (click)="showModal('department')">
+            <i class="fas fa-building"></i>
+            Ajouter un département
+          </button>
+        </div>
+      </div>
+    </div>
+
+   <br>
+
+    <div class="stats-section">
+      <h2>Statistiques</h2>
+      
+      <div class="stats-cards">
+        <div class="stat-card">
+          <div class="stat-icon users"><i class="fas fa-users"></i></div>
+          <div class="stat-info">
+            <h3>{{ userStats.total }}</h3>
+            <p>Utilisateurs</p>
+           
+          </div>
+         
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon levels"><i class="fas fa-layer-group"></i></div>
+          <div class="stat-info">
+            <h3>{{ niveaux.length }}</h3>
+            <p>Niveaux</p>
+           
+          </div>
+        
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon specialties"><i class="fas fa-graduation-cap"></i></div>
+          <div class="stat-info">
+            <h3>{{ specialtyStats.total }}</h3>
+            <p>Spécialités</p>
+           
+          </div>
+      
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon departments"><i class="fas fa-building"></i></div>
+          <div class="stat-info">
+            <h3>{{ departmentStats.total }}</h3>
+            <p>Départements</p>
+           
+      
+       
+           
+        </div>
+      </div>
+
+      
+      
+  
+      
+    
+
+
+
+
+<!-- Modal d'ajout/modification d'enseignant -->
+<div class="modal-overlay" *ngIf="activeModal === 'enseign'" @fadeIn>
+<div class="modal-container" @slideIn>
+  <div class="modal-header">
+    <h2>{{editMode ? 'Modifier' : 'Ajouter'}} un enseignant</h2>
+    <button class="close-button" (click)="hideModal()">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+  <div class="modal-body">
+    <form [formGroup]="enseignantForm" (ngSubmit)="submitForm('enseignant')">
+      <!-- Section informations personnelles -->
+      <div class="form-section">
+        <h3><i class="fas fa-user-circle"></i> Informations personnelles</h3>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="lastName">Nom <span class="required">*</span></label>
+            <input type="text" id="lastName" formControlName="lastName" placeholder="Ex: Benali">
+            <div *ngIf="hasError('lastName', 'enseignantForm')" class="error-message">
+              {{getErrorMessage('lastName', 'enseignantForm')}}
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="firstName">Prénom <span class="required">*</span></label>
+            <input type="text" id="firstName" formControlName="firstName" placeholder="Ex: Ahmed">
+            <div *ngIf="hasError('firstName', 'enseignantForm')" class="error-message">
+              {{getErrorMessage('firstName', 'enseignantForm')}}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="birthDate">Date de naissance <span class="required">*</span></label>
+            <input type="date" id="birthDate" formControlName="birthDate">
+            <div *ngIf="hasError('birthDate', 'enseignantForm')" class="error-message">
+              {{getErrorMessage('birthDate', 'enseignantForm')}}
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="civilStatus">État civil <span class="required">*</span></label>
+            <select id="civilStatus" formControlName="civilStatus">
+              <option value="">Sélectionnez</option>
+              <option value="célibataire">Célibataire</option>
+              <option value="marié">Marié(e)</option>
+              <option value="divorcé">Divorcé(e)</option>
+              <option value="veuf">Veuf/Veuve</option>
+            </select>
+            <div *ngIf="hasError('civilStatus', 'enseignantForm')" class="error-message">
+              {{getErrorMessage('civilStatus', 'enseignantForm')}}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section informations d'identification -->
+      <div class="form-section">
+        <h3><i class="fas fa-id-card"></i> Informations d'identification</h3>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="enseignantEmail">Email <span class="required">*</span></label>
+            <input type="email" id="enseignantEmail" formControlName="email" placeholder="Ex: ahmed.benali@enseignant.edu">
+            <div *ngIf="hasError('email', 'enseignantForm')" class="error-message">
+              {{getErrorMessage('email', 'enseignantForm')}}
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="enseignantTelephone">Téléphone <span class="required">*</span></label>
+            <input type="tel" id="enseignantTelephone" formControlName="telephone" placeholder="Ex: 55123456">
+            <div *ngIf="hasError('telephone', 'enseignantForm')" class="error-message">
+              {{getErrorMessage('telephone', 'enseignantForm')}}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="enseignantCin">N° CIN ou N° Passeport <span class="required">*</span></label>
+          <input type="text" id="enseignantCin" formControlName="cin" placeholder="Ex: 12345678">
+          <div *ngIf="hasError('cin', 'enseignantForm')" class="error-message">
+            {{getErrorMessage('cin', 'enseignantForm')}}
+          </div>
+        </div>
+      </div>
+
+      <!-- Section adresse -->
+      <div class="form-section">
+        <h3><i class="fas fa-map-marker-alt"></i> Adresse</h3>
+        
+        <div class="form-group">
+          <label for="enseignantStreet">Rue <span class="required">*</span></label>
+          <input type="text" id="enseignantStreet" formControlName="street" placeholder="Ex: 15 Rue des Oliviers">
+          <div *ngIf="hasError('street', 'enseignantForm')" class="error-message">
+            {{getErrorMessage('street', 'enseignantForm')}}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="enseignantPostalCode">Code postal <span class="required">*</span></label>
+            <input type="text" id="enseignantPostalCode" formControlName="postalCode" placeholder="Ex: 1002">
+            <div *ngIf="hasError('postalCode', 'enseignantForm')" class="error-message">
+              {{getErrorMessage('postalCode', 'enseignantForm')}}
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="enseignantGouvernorat">Gouvernorat <span class="required">*</span></label>
+            <select id="enseignantGouvernorat" formControlName="gouvernorat">
+                <option value="">Sélectionnez</option>
+                <option value="Tunis">Tunis</option>
+                <option value="Ariana">Ariana</option>
+                <option value="Ben Arous">Ben Arous</option>
+                <option value="Manouba">Manouba</option>
+                <option value="Nabeul">Nabeul</option>
+                <option value="Zaghouan">Zaghouan</option>
+                <option value="Bizerte">Bizerte</option>
+                <option value="Béja">Béja</option>
+                <option value="Jendouba">Jendouba</option>
+                <option value="Kef">Kef</option>
+                <option value="Siliana">Siliana</option>
+                <option value="Sousse">Sousse</option>
+                <option value="Monastir">Monastir</option>
+                <option value="Mahdia">Mahdia</option>
+                <option value="Sfax">Sfax</option>
+                <option value="Kairouan">Kairouan</option>
+                <option value="Kasserine">Kasserine</option>
+                <option value="Sidi Bouzid">Sidi Bouzid</option>
+                <option value="Gabès">Gabès</option>
+                <option value="Médenine">Médenine</option>
+                <option value="Tataouine">Tataouine</option>
+                <option value="Gafsa">Gafsa</option>
+                <option value="Tozeur">Tozeur</option>
+                <option value="Kébili">Kébili</option>
+            </select>
+            <div *ngIf="hasError('gouvernorat', 'enseignantForm')" class="error-message">
+              {{getErrorMessage('gouvernorat', 'enseignantForm')}}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="enseignantDelegation">Délégation <span class="required">*</span></label>
+          <input type="text" id="enseignantDelegation" formControlName="delegation" placeholder="Ex: Bab Bhar, Médina, La Marsa">
+          <div *ngIf="hasError('delegation', 'enseignantForm')" class="error-message">
+            {{getErrorMessage('delegation', 'enseignantForm')}}
+          </div>
+        </div>
+      </div>
+
+      <!-- Section informations académiques -->
+      <div class="form-section">
+        <h3><i class="fas fa-graduation-cap"></i> Informations académiques</h3>
+        
+        <div class="form-group">
+          <label for="enseignantDepartment">Département <span class="required">*</span></label>
+          <select id="enseignantDepartment" formControlName="department">
+            <option value="">Sélectionnez le département</option>
+            <option *ngFor="let dept of departments" [value]="dept._id">
+              {{ dept.name }}
+            </option>
+          </select>
+          <div *ngIf="hasError('department', 'enseignantForm')" class="error-message">
+            {{getErrorMessage('department', 'enseignantForm')}}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="enseignantGrade">Grade <span class="required">*</span></label>
+          <select id="enseignantGrade" formControlName="grade">
+            <option value="">Sélectionnez le grade</option>
+            <option value="Professeur">Professeur</option>
+            <option value="Maître de conférences">Maître de conférences</option>
+            <option value="Maître assistant">Maître assistant</option>
+            <option value="Assistant">Assistant</option>
+            <option value="Enseignant contractuel">Enseignant contractuel</option>
+            <option value="Vacataire">Vacataire</option>
+          </select>
+          <div *ngIf="hasError('grade', 'enseignantForm')" class="error-message">
+            {{getErrorMessage('grade', 'enseignantForm')}}
+          </div>
+        </div>
+      </div>
+
+      <!-- Section sécurité -->
+      <div class="form-section" *ngIf="!editMode">
+        <h3><i class="fas fa-lock"></i> Sécurité</h3>
+        
+        <div class="form-group">
+          <label for="enseignantPassword">Mot de passe <span class="required">*</span></label>
+          <div class="password-input-container">
+            <input [type]="showPassword ? 'text' : 'password'" id="enseignantPassword" formControlName="password" placeholder="Entrez le mot de passe">
+            <button type="button" class="toggle-password" (click)="showPassword = !showPassword">
+              <i class="fas" [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+            </button>
+          </div>
+          <div *ngIf="hasError('password', 'enseignantForm')" class="error-message">
+            {{getErrorMessage('password', 'enseignantForm')}}
+          </div>
+        </div>
+      </div>
+        
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="hideModal()">
+          <i class="fas fa-times"></i> Annuler
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="enseignantForm.invalid || submitting">
+          <i class="fas" [ngClass]="submitting ? 'fa-spinner fa-spin' : (editMode ? 'fa-save' : 'fa-plus')"></i>
+          <span *ngIf="submitting">Traitement...</span>
+          <span *ngIf="!submitting">{{editMode ? 'Mettre à jour' : 'Ajouter'}}</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+<!-- Formulaire Modal pour les Utilisateurs -->
+<div class="modal-overlay" *ngIf="activeModal === 'user'">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2>Ajouter un étudiant</h2>
+      <button class="close-button" (click)="hideModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form [formGroup]="userForm" (ngSubmit)="submitForm('user')">
+    
+        <!-- Section informations personnelles -->
+        <div class="form-section">
+          <h3><i class="fas fa-user-circle"></i> Informations personnelles</h3>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="lastName">Nom <span class="required">*</span></label>
+              <input type="text" id="lastName" formControlName="lastName" placeholder="Ex: Benali">
+              <div *ngIf="userForm.get('lastName')?.invalid && userForm.get('lastName')?.touched" class="error-message">
+                Le nom est requis
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="firstName">Prénom <span class="required">*</span></label>
+              <input type="text" id="firstName" formControlName="firstName" placeholder="Ex: Ahmed">
+              <div *ngIf="userForm.get('firstName')?.invalid && userForm.get('firstName')?.touched" class="error-message">
+                Le prénom est requis
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="birthDate">Date de naissance <span class="required">*</span></label>
+              <input type="date" id="birthDate" formControlName="birthDate">
+              <div *ngIf="userForm.get('birthDate')?.invalid && userForm.get('birthDate')?.touched" class="error-message">
+                La date de naissance est requise
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="civilStatus">État civil <span class="required">*</span></label>
+              <select id="civilStatus" formControlName="civilStatus">
+                <option value="">Sélectionnez</option>
+                <option value="célibataire">Célibataire</option>
+                <option value="marié">Marié(e)</option>
+                <option value="divorcé">Divorcé(e)</option>
+                <option value="veuf">Veuf/Veuve</option>
+              </select>
+              <div *ngIf="userForm.get('civilStatus')?.invalid && userForm.get('civilStatus')?.touched" class="error-message">
+                L'état civil est requis
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section informations d'identification -->
+        <div class="form-section">
+          <h3><i class="fas fa-id-card"></i> Informations d'identification</h3>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="userEmail">Email <span class="required">*</span></label>
+              <input type="email" id="userEmail" formControlName="email" placeholder="Ex: ahmed.benali@etudiant.edu">
+              <div *ngIf="userForm.get('email')?.invalid && userForm.get('email')?.touched" class="error-message">
+                Email invalide
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="matricule">Matricule</label>
+              <input type="text" id="matricule" formControlName="matricule" placeholder="Ex: E12345" [disabled]="true">
+              <p class="info-text">Le matricule ne peut pas être modifié</p>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="userCin">N° CIN ou N° Passeport <span class="required">*</span></label>
+              <input type="text" id="userCin" formControlName="cin" placeholder="Ex: 12345678">
+              <div *ngIf="userForm.get('cin')?.invalid && userForm.get('cin')?.touched" class="error-message">
+                Le CIN est requis
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="telephone">Téléphone <span class="required">*</span></label>
+              <input type="tel" id="telephone" formControlName="telephone" placeholder="Ex: 55123456">
+              <div *ngIf="userForm.get('telephone')?.invalid && userForm.get('telephone')?.touched" class="error-message">
+                Le numéro de téléphone est requis
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section adresse -->
+        <div class="form-section">
+          <h3><i class="fas fa-map-marker-alt"></i> Adresse</h3>
+          
+          <div class="form-group">
+            <label for="street">Rue <span class="required">*</span></label>
+            <input type="text" id="street" formControlName="street" placeholder="Ex: 15 Rue des Oliviers">
+            <div *ngIf="userForm.get('street')?.invalid && userForm.get('street')?.touched" class="error-message">
+              L'adresse est requise
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="postalCode">Code postal <span class="required">*</span></label>
+              <input type="text" id="postalCode" formControlName="postalCode" placeholder="Ex: 1002">
+              <div *ngIf="userForm.get('postalCode')?.invalid && userForm.get('postalCode')?.touched" class="error-message">
+                Le code postal est requis
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="gouvernorat">Gouvernorat *</label>
+              <select id="gouvernorat" formControlName="gouvernorat">
+                  <option value="">Sélectionnez</option>
+                  <option value="Tunis">Tunis</option>
+                  <option value="Ariana">Ariana</option>
+                  <option value="Ben Arous">Ben Arous</option>
+                  <option value="Manouba">Manouba</option>
+                  <option value="Nabeul">Nabeul</option>
+                  <option value="Zaghouan">Zaghouan</option>
+                  <option value="Bizerte">Bizerte</option>
+                  <option value="Béja">Béja</option>
+                  <option value="Jendouba">Jendouba</option>
+                  <option value="Kef">Kef</option>
+                  <option value="Siliana">Siliana</option>
+                  <option value="Sousse">Sousse</option>
+                  <option value="Monastir">Monastir</option>
+                  <option value="Mahdia">Mahdia</option>
+                  <option value="Sfax">Sfax</option>
+                  <option value="Kairouan">Kairouan</option>
+                  <option value="Kasserine">Kasserine</option>
+                  <option value="Sidi Bouzid">Sidi Bouzid</option>
+                  <option value="Gabès">Gabès</option>
+                  <option value="Médenine">Médenine</option>
+                  <option value="Tataouine">Tataouine</option>
+                  <option value="Gafsa">Gafsa</option>
+                  <option value="Tozeur">Tozeur</option>
+                  <option value="Kébili">Kébili</option>
+              </select>
+              <div *ngIf="userForm.get('gouvernorat')?.invalid && userForm.get('gouvernorat')?.touched" class="error-message">
+                Le gouvernorat est requis
+              </div>
+          </div>
+          </div>
+
+          <div class="form-group">
+            <label for="delegation">Délégation *</label>
+            <input type="text" id="delegation" formControlName="delegation" placeholder="ex : Bab Bhar, Médina, La Marsa">
+            <div *ngIf="userForm.get('delegation')?.invalid && userForm.get('delegation')?.touched" class="error-message">
+              La délégation est requise
+            </div>
+          </div>
+        </div>
+
+        <!-- Section informations académiques -->
+<!-- Informations académiques -->
+<div class="form-section">
+  <h3><i class="fas fa-graduation-cap"></i> Informations académiques</h3>
+  
+  <div class="form-group">
+    <label for="userLevel">Niveau <span class="required">*</span></label>
+    <select id="userLevel" formControlName="level">
+      <option value="">Sélectionnez le niveau</option>
+      <option *ngFor="let niveau of niveaux" [value]="niveau._id">
+        {{ niveau.name }}
+      </option>
+    </select>
+    <div *ngIf="userForm.get('level')?.invalid && userForm.get('level')?.touched" class="error-message">
+      Le niveau est requis
+    </div>
+  </div>
+  
+  <div class="form-group">
+    <label for="userDepartment">Département <span class="required">*</span></label>
+    <select id="userDepartment" formControlName="department" (change)="onDepartmentChange()">
+      <option value="">Sélectionnez le département</option>
+      <option *ngFor="let dept of departments" [value]="dept._id">
+        {{ dept.name }}
+      </option>
+    </select>
+    <div *ngIf="userForm.get('department')?.invalid && userForm.get('department')?.touched" class="error-message">
+      Le département est requis
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="userSpecialty">Spécialité <span class="required">*</span></label>
+    <select id="userSpecialty" formControlName="specialty" [disabled]="!userForm.get('department')?.value || filteredSpecialties.length === 0">
+      <option value="">{{ filteredSpecialties.length === 0 ? 'Aucune spécialité disponible' : 'Sélectionnez la spécialité' }}</option>
+      <option *ngFor="let spec of filteredSpecialties" [value]="spec._id">
+        {{ spec.name }}
+      </option>
+    </select>
+    <div *ngIf="userForm.get('specialty')?.invalid && userForm.get('specialty')?.touched" class="error-message">
+      La spécialité est requise
+    </div>
+  </div>
+  
+  <!-- Nouveaux champs pour filière et groupe (sans sous-groupe) -->
+  <div class="form-group">
+    <label for="userFiliere">Filière <span class="required">*</span></label>
+    <select id="userFiliere" formControlName="filiere" [disabled]="filteredFilieres.length === 0">
+      <option value="">{{ filteredFilieres.length === 0 ? 'Aucune filière disponible' : 'Sélectionnez la filière' }}</option>
+      <option *ngFor="let filiere of filteredFilieres" [value]="filiere._id">
+        {{ filiere.name }}
+      </option>
+    </select>
+    <div *ngIf="userForm.get('filiere')?.invalid && userForm.get('filiere')?.touched" class="error-message">
+      La filière est requise
+    </div>
+    <div *ngIf="loadingFilieres" class="loading-indicator">
+      <i class="fas fa-spinner fa-spin"></i> Chargement des filières...
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="userGroup">Groupe <span class="required">*</span></label>
+    <select id="userGroup" formControlName="group" [disabled]="!userForm.get('filiere')?.value || availableGroupes.length === 0">
+      <option value="">{{ availableGroupes.length === 0 ? 'Sélectionnez d\'abord une filière' : 'Sélectionnez le groupe' }}</option>
+      <option *ngFor="let groupe of availableGroupes" [value]="groupe._id">
+        {{ groupe.nom || groupe.code }}
+      </option>
+    </select>
+    <div *ngIf="userForm.get('group')?.invalid && userForm.get('group')?.touched" class="error-message">
+      Le groupe est requis
+    </div>
+  </div>
+  
+  <!-- Suppression du champ sous-groupe -->
+</div>
+        <!-- Section sécurité -->
+        <div class="form-section">
+          <h3><i class="fas fa-lock"></i> Sécurité</h3>
+          
+          <div class="form-group">
+            <label for="userPassword">Mot de passe <span class="required">*</span></label>
+            <input type="password" id="userPassword" formControlName="password" placeholder="Entrez le mot de passe">
+            <div *ngIf="userForm.get('password')?.invalid && userForm.get('password')?.touched" class="error-message">
+              Le mot de passe doit contenir au moins 6 caractères
+            </div>
+          </div>
+          
+        </div>
+          
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" (click)="hideModal()">
+            <i class="fas fa-times"></i> Annuler
+          </button>
+          <button type="submit" class="btn-save" [disabled]="userForm.invalid || submitting">
+            <i class="fas fa-save"></i>
+            <span *ngIf="submitting">Enregistrement...</span>
+            <span *ngIf="!submitting">Enregistrer</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Formulaire Modal pour les Niveaux -->
+<div class="modal-overlay" *ngIf="activeModal === 'level'">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2>Ajouter un niveau</h2>
+      <button class="close-button" (click)="hideModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form [formGroup]="levelForm" (ngSubmit)="submitForm('level')">
+        <div class="form-group">
+          <label for="levelName">Nom du niveau</label>
+          <input 
+            type="text" 
+            id="levelName" 
+            formControlName="name" 
+            placeholder="Entrez le nom du niveau"
+          >
+          <div *ngIf="levelForm.get('name')?.invalid && levelForm.get('name')?.touched" class="error-message">
+            Le nom du niveau est requis
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="levelDescription">Description</label>
+          <textarea 
+            id="levelDescription" 
+            formControlName="description" 
+            placeholder="Entrez une description"
+          ></textarea>
+        </div>
+        <div class="form-group">
+          <label for="levelColor">Couleur</label>
+          <input 
+            type="color" 
+            id="levelColor" 
+            formControlName="couleur"
+          >
+        </div>
+        <div class="form-group">
+          <label for="levelDepartment">Département</label>
+          <select id="levelDepartment" formControlName="departement">
+            <option value="">Sélectionnez un département</option>
+            <option *ngFor="let dept of departments" [value]="dept._id">{{dept.name}}</option>
+          </select>
+          <div *ngIf="levelForm.get('departement')?.invalid && levelForm.get('departement')?.touched" class="error-message">
+            Le département est requis
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="hideModal()">
+            Annuler
+          </button>
+          <button 
+            type="submit" 
+            class="btn-primary" 
+            [disabled]="levelForm.invalid"
+          >
+            {{isEditing ? 'Modifier' : 'Ajouter'}}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal d'ajout de spécialité -->
+<div class="modal-overlay" *ngIf="activeModal === 'specialty'">
+<div class="modal-container">
+  <div class="modal-header">
+    <h2>Ajouter une spécialité</h2>
+    <button class="close-button" (click)="hideModal()">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+  <div class="modal-body">
+    <form [formGroup]="specialtyForm" (ngSubmit)="submitForm('specialty')">
+      <div class="form-group">
+        <label for="specialtyName">Nom de la spécialité</label>
+        <input type="text" id="specialtyName" formControlName="name" placeholder="Entrez le nom de la spécialité">
+      </div>
+      <div class="form-group">
+        <label for="specialtyDescription">Description</label>
+        <textarea id="specialtyDescription" formControlName="description" placeholder="Description de la spécialité"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="userLevel">Niveau</label>
+        <select id="userLevel" formControlName="level">
+          <option value="">Sélectionnez le niveau</option>
+          <option *ngFor="let niveau of niveaux" [value]="niveau._id">
+            {{ niveau.name }}
+          </option>
+        </select>
+        <div *ngIf="specialtyForm.get('level')?.invalid && specialtyForm.get('level')?.touched" class="error-message">
+          Le niveau est requis
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="specialtyDepartment">Département</label>
+        <select id="specialtyDepartment" formControlName="department">
+          <option value="">Sélectionnez le département</option>
+          <option *ngFor="let dept of departments" [value]="dept._id">
+            {{ dept.name }}
+          </option>
+        </select>
+        <div *ngIf="specialtyForm.get('department')?.invalid && specialtyForm.get('department')?.touched" class="error-message">
+          Veuillez sélectionner un département
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="hideModal()">Annuler</button>
+        <button type="submit" class="btn-primary" [disabled]="specialtyForm.invalid">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+
+
+<!-- Formulaire Modal pour les Départements -->
+<div class="modal-overlay" *ngIf="activeModal === 'department'">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2>Ajouter un département</h2>
+      <button class="close-button" (click)="hideModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form [formGroup]="departmentForm" (ngSubmit)="submitForm('department')">
+        <div class="form-group">
+          <label for="departmentName">Nom du département</label>
+          <input type="text" id="departmentName" formControlName="name" placeholder="Entrez le nom du département">
+        </div>
+        <div class="form-group">
+          <label for="departmentDescription">Description</label>
+          <textarea id="departmentDescription" formControlName="description" placeholder="Entrez une description"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="departmentHead">Chef Département</label>
+          <input type="text" id="departmentHead" formControlName="head" placeholder="Entrez le nom du responsable">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="hideModal()">Annuler</button>
+          <button type="submit" class="btn-primary" [disabled]="departmentForm.invalid">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

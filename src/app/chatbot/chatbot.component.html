@@ -1,0 +1,60 @@
+<div class="chatbot-container">
+    <div class="chatbot-header">
+        <h2 class="animate-gradient-text">🤖 ChatBot</h2>
+    </div>
+  
+    <div #chatContainer class="chat-history" (scroll)="onScroll($event)">
+      <ng-container *ngFor="let message of chatHistory">
+        <div 
+          class="message" 
+          [ngClass]="{
+            'user-message': message.sender === 'User',
+            'bot-message': message.sender === 'Chatbot',
+            'typing-indicator': message.isTyping,
+            'error-message': message.error
+          }"
+        >
+          <div class="message-content">
+            <ng-container *ngIf="!message.isTyping && !message.error">
+              {{ message.message }}
+            </ng-container>
+            
+            <ng-container *ngIf="message.isTyping">
+              <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </ng-container>
+            
+            <ng-container *ngIf="message.error">
+              <i class="error-icon">⚠️</i> {{ message.message }}
+            </ng-container>
+          </div>
+          
+          <small class="message-timestamp">
+            {{ message.timestamp | date:'HH:mm' }}
+          </small>
+        </div>
+      </ng-container>
+    </div>
+  
+    <div class="input-area">
+      <input 
+        type="text" 
+        [(ngModel)]="userMessage"
+        (keydown.enter)="sendMessage()"
+        placeholder="Écrivez votre message..."
+        [disabled]="isTyping"
+      >
+      <button 
+        (click)="sendMessage()" 
+        [disabled]="!userMessage.trim() || isTyping"
+        class="send-button"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+        </svg>
+      </button>
+    </div>
+  </div>

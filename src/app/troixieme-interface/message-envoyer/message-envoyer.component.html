@@ -1,0 +1,424 @@
+<div class="enseignant-container">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <img src="assets/images/isg.png" alt="Logo ISG EduLink" class="logo-img">
+        <span class="logo-text">ISG EduLink</span>
+      </div>
+      <!-- Bouton de profil -->
+      <button class="profile-button" routerLink="/troixieme-interface/eduprofil">
+        <div class="enseignant-avatar">{{ etudiantName ? etudiantName[0] : '?' }}</div>
+        <div class="enseignant-details">
+          <h3>{{ etudiantName }}</h3>
+          <p>{{ etudiantEmail }}</p>
+        </div>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <ul>
+        <li routerLink="/troixieme-interface" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+          <i class="fas fa-home"></i>
+          <span>Tableau de bord</span>
+        </li>
+        <li routerLink="/troixieme-interface/cour-suivie" routerLinkActive="active">
+          <i class="fas fa-book"></i>
+          <span>Mes cours</span>
+        </li>
+        <li routerLink="/troixieme-interface/devoir-realiser" routerLinkActive="active">
+          <i class="fas fa-tasks"></i>
+          <span>Mes devoirs</span>
+        </li>
+        <li routerLink="/troixieme-interface/quiz-repond" routerLinkActive="active">
+          <i class="fas fa-question-circle"></i>
+          <span>Mes quiz</span>
+        </li>
+        <li routerLink="/troixieme-interface/message-envoyer" routerLinkActive="active">
+          <i class="fas fa-envelope"></i>
+          <span>Forum de discussion</span>
+        </li>
+        <li routerLink="/troixieme-interface/notification" routerLinkActive="active">
+          <i class="fas fa-bell"></i>
+          <span>Notification</span>
+          <span class="badge" *ngIf="getUnreadNotificationsCount() > 0">{{ getUnreadNotificationsCount() }}</span>
+        </li>
+      </ul>
+    </nav>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="content-header">
+      <div class="header-title">
+        <h1>Forum de discussion</h1>
+      </div>
+      <div class="header-actions">
+        <div class="search-bar">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Rechercher un message..." [(ngModel)]="searchTerm">
+        </div>
+        <!-- Bouton nouveau message - visible uniquement si une matière est sélectionnée -->
+        <button *ngIf="selectedMatiere" class="btn-primary" (click)="changeTab('nouveau')">
+          <i class="fas fa-plus"></i> Nouveau message
+        </button>
+        
+        <!-- Notification avec dropdown - Nouvelle version avec onglets -->
+        <div class="notification-container">
+          <button class="notification-btn" (click)="toggleNotificationDropdown($event)">
+            <i class="fas fa-bell"></i>
+            <span *ngIf="getUnreadNotificationsCount() > 0" class="notification-badge">
+              {{ getUnreadNotificationsCount() }}
+            </span>
+          </button>
+
+          <div class="notification-dropdown" *ngIf="showNotificationDropdown">
+            <div class="notification-header">
+              <h3>Notifications</h3>
+              <span *ngIf="getUnreadNotificationsCount() > 0" class="unread-count">
+                {{ getUnreadNotificationsCount() }} non lues
+              </span>
+            </div>
+
+            <div class="notification-tabs">
+              <button 
+                [class.active]="activeNotificationTab === 'academic'"
+                (click)="setActiveNotificationTab('academic')">
+                Académique {{ getUnreadAcademicNotificationsCount() > 0 ? '(' + getUnreadAcademicNotificationsCount() + ')' : '' }}
+              </button>
+              <button 
+                [class.active]="activeNotificationTab === 'messages'"
+                (click)="setActiveNotificationTab('messages')">
+                Messages {{ getUnreadMessageNotificationsCount() > 0 ? '(' + getUnreadMessageNotificationsCount() + ')' : '' }}
+              </button>
+            </div>
+
+            <div class="notification-content">
+              <!-- Notifications académiques -->
+              <div *ngIf="activeNotificationTab === 'academic'">
+                <div *ngIf="academicNotifications.length === 0" class="no-notifications">
+                  Aucune notification académique
+                </div>
+                <div 
+                  *ngFor="let notification of academicNotifications" 
+                  class="notification-item"
+                  [class.unread]="!notification.read"
+                  (click)="markAcademicNotificationAsRead(notification)">
+                  <div class="notification-icon">
+                    <i class="fas" [ngClass]="getNotificationIcon(notification.type)"></i>
+                  </div>
+                  <div class="notification-content">
+                    <div class="notification-title">{{ notification.title }}</div>
+                    <div class="notification-message">{{ notification.message }}</div>
+                    <div class="notification-time">{{ formatTimeAgo(notification.date) }}</div>
+                  </div>
+                  <div class="notification-status" *ngIf="!notification.read"></div>
+                </div>
+                <button 
+                  *ngIf="academicNotifications.length > 0" 
+                  class="mark-all-read"
+                  (click)="markAllAcademicNotificationsAsRead()">
+                  Marquer tout comme lu
+                </button>
+              </div>
+
+              <!-- Notifications de messages -->
+              <div *ngIf="activeNotificationTab === 'messages'">
+                <div *ngIf="messageNotifications.length === 0" class="no-notifications">
+                  Aucun message
+                </div>
+                <div 
+                  *ngFor="let notification of messageNotifications" 
+                  class="notification-item"
+                  [class.unread]="!notification.read"
+                  (click)="markMessageNotificationAsRead(notification)">
+                  <div class="notification-icon">
+                    <i class="fas fa-comment"></i>
+                  </div>
+                  <div class="notification-content">
+                    <div class="notification-title">{{ notification.title }}</div>
+                    <div class="notification-message">{{ notification.message }}</div>
+                    <div class="notification-time">{{ formatTimeAgo(notification.date) }}</div>
+                  </div>
+                  <div class="notification-status" *ngIf="!notification.read"></div>
+                </div>
+                <button 
+                  *ngIf="messageNotifications.length > 0" 
+                  class="mark-all-read"
+                  (click)="markAllMessageNotificationsAsRead()">
+                  Marquer tout comme lu
+                </button>
+              </div>
+            </div>
+
+            <div class="notification-footer">
+              <button class="view-all" (click)="navigateToNotifications()">
+                Voir toutes les notifications
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenu principal -->
+    <div class="forum-container">
+      <!-- Onglets - Affichés uniquement si une matière est sélectionnée -->
+      <div class="forum-tabs" *ngIf="selectedMatiere">
+        <div class="tab" [class.active]="activeTab === 'matiere'" (click)="backToMatieres()">
+          <i class="fas fa-book"></i>
+          <span>Changer de matière</span>
+        </div>
+        <div class="tab" [class.active]="activeTab === 'recus'" (click)="changeTab('recus')">
+          <i class="fas fa-inbox"></i>
+          <span>Messages reçus</span>
+          <span *ngIf="getUnreadCount() > 0" class="badge">{{ getUnreadCount() }}</span>
+        </div>
+        <div class="tab" [class.active]="activeTab === 'envoyes'" (click)="changeTab('envoyes')">
+          <i class="fas fa-paper-plane"></i>
+          <span>Messages envoyés</span>
+        </div>
+        <div class="tab" [class.active]="activeTab === 'nouveau'" (click)="changeTab('nouveau')">
+          <i class="fas fa-edit"></i>
+          <span>Nouveau message</span>
+        </div>
+      </div>
+
+      <!-- Sélection de matière -->
+      <div *ngIf="activeTab === 'matiere'" class="new-message-form">
+        <h2>Sélectionnez une matière pour accéder au forum</h2>
+
+        <div class="matiere-selection">
+          <!-- Indicateur de chargement -->
+          <div *ngIf="isLoading.matieres" class="loading-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Chargement des matières...</p>
+          </div>
+          
+          <!-- Message d'erreur si aucune matière n'est disponible -->
+          <div *ngIf="!isLoading.matieres && matieres.length === 0" class="empty-state">
+            <i class="fas fa-exclamation-circle"></i>
+            <h3>Aucune matière disponible</h3>
+            <p>Veuillez contacter l'administrateur pour plus d'informations.</p>
+          </div>
+          
+          <div class="matieres-grid" *ngIf="!isLoading.matieres && matieres.length > 0">
+            <div *ngFor="let matiere of matieres" class="matiere-card-small" (click)="selectMatiere(matiere)">
+              <div class="matiere-icon-small" [style.background-color]="matiere.couleur">
+                <i class="fas" [class]="matiere.icon"></i>
+              </div>
+              <div class="matiere-info-small">
+                <h4>{{ matiere.nom }}</h4>
+                <p>{{ matiere.enseignant }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Messages reçus -->
+      <div *ngIf="activeTab === 'recus' && !selectedMessage && selectedMatiere" class="messages-list">
+        <!-- Indicateur de chargement -->
+        <div *ngIf="isLoading.messagesRecus" class="loading-state">
+          <i class="fas fa-spinner fa-spin"></i>
+          <p>Chargement des messages...</p>
+        </div>
+        
+        <div *ngIf="!isLoading.messagesRecus && getFilteredMessages(messagesRecus).length === 0" class="empty-state">
+          <i class="fas fa-inbox"></i>
+          <h3>Aucun message</h3>
+          <p>Vous n'avez pas encore reçu de messages dans cette matière.</p>
+        </div>
+
+        <div *ngFor="let message of getFilteredMessages(messagesRecus)" class="message-card" [class.unread]="isUnread(message)" (click)="selectMessage(message)">
+          <div class="message-avatar" [style.background-color]="isUnread(message) ? 'var(--primary-color)' : 'var(--primary-light)'">
+            {{ message.avatarExpediteur }}
+          </div>
+          <div class="message-content">
+            <div class="message-header">
+              <h3>{{ message.sujet }}</h3>
+              <span class="message-date">{{ formatDate(message.dateEnvoi) }}</span>
+            </div>
+            <div class="message-meta">
+              <span class="message-sender">
+                <i class="fas fa-user"></i> {{ message.nomExpediteur }}
+              </span>
+              <span class="message-course">
+                <i class="fas fa-book"></i> {{ message.matiere }}
+              </span>
+            </div>
+            <p class="message-preview">{{ message.contenu.substring(0, 100) }}{{ message.contenu.length > 100 ? '...' : '' }}</p>
+          </div>
+          <div class="message-status">
+            <span *ngIf="isUnread(message)" class="status-badge">
+              <i class="fas fa-circle"></i> Non lu
+            </span>
+            <i class="fas fa-chevron-right"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Messages envoyés -->
+      <div *ngIf="activeTab === 'envoyes' && !selectedMessage && selectedMatiere" class="messages-list">
+        <!-- Indicateur de chargement -->
+        <div *ngIf="isLoading.messagesEnvoyes" class="loading-state">
+          <i class="fas fa-spinner fa-spin"></i>
+          <p>Chargement des messages...</p>
+        </div>
+        
+        <div *ngIf="!isLoading.messagesEnvoyes && getFilteredMessages(messagesEnvoyes).length === 0" class="empty-state">
+          <i class="fas fa-paper-plane"></i>
+          <h3>Aucun message</h3>
+          <p>Vous n'avez pas encore envoyé de messages dans cette matière.</p>
+        </div>
+
+        <div *ngFor="let message of getFilteredMessages(messagesEnvoyes)" class="message-card" (click)="selectMessage(message)">
+          <div class="message-avatar" style="background-color: var(--primary-light)">
+            {{ message.avatarExpediteur }}
+          </div>
+          <div class="message-content">
+            <div class="message-header">
+              <h3>{{ message.sujet }}</h3>
+              <span class="message-date">{{ formatDate(message.dateEnvoi) }}</span>
+            </div>
+            <div class="message-meta">
+              <span class="message-recipient">
+                <i class="fas fa-user"></i> À: {{ message.destinataire }}
+              </span>
+              <span class="message-course">
+                <i class="fas fa-book"></i> {{ message.matiere }}
+              </span>
+            </div>
+            <p class="message-preview">{{ message.contenu.substring(0, 100) }}{{ message.contenu.length > 100 ? '...' : '' }}</p>
+          </div>
+          <div class="message-status">
+            <span class="status-badge sent">
+              <i class="fas fa-check"></i> Envoyé
+            </span>
+            <i class="fas fa-chevron-right"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nouveau message -->
+      <div *ngIf="activeTab === 'nouveau' && selectedMatiere" class="new-message-form">
+        <h2>Nouveau message</h2>
+
+        <div class="message-form">
+          <div class="form-header">
+            <div class="selected-matiere">
+              <div class="matiere-icon-small" [style.background-color]="selectedMatiere.couleur">
+                <i class="fas" [class]="selectedMatiere.icon"></i>
+              </div>
+              <div class="matiere-info-small">
+                <h4>{{ selectedMatiere.nom }}</h4>
+                <p>{{ selectedMatiere.enseignant }}</p>
+              </div>
+            </div>
+            <button class="btn-outline" (click)="backToMatieres()">
+              <i class="fas fa-times"></i> Changer de matière
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label for="sujet">Sujet</label>
+            <input type="text" id="sujet" [(ngModel)]="nouveauMessage.sujet" placeholder="Entrez le sujet de votre message">
+          </div>
+
+          <div class="form-group">
+            <label for="contenu">Message</label>
+            <textarea id="contenu" [(ngModel)]="nouveauMessage.contenu" rows="8" placeholder="Rédigez votre message ici..."></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-secondary" (click)="changeTab('recus')">
+              <i class="fas fa-times"></i> Annuler
+            </button>
+            <button class="btn-primary" [disabled]="isSubmitting || !nouveauMessage.sujet || !nouveauMessage.contenu" (click)="envoyerMessage()">
+              <i class="fas" [ngClass]="isSubmitting ? 'fa-spinner fa-spin' : 'fa-paper-plane'"></i>
+              {{ isSubmitting ? 'Envoi en cours...' : 'Envoyer le message' }}
+            </button>
+          </div>
+
+          <div *ngIf="messageEnvoye" class="success-message">
+            <i class="fas fa-check-circle"></i>
+            <span>Votre message a été envoyé avec succès !</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Détail d'un message -->
+      <div *ngIf="selectedMessage" class="message-detail">
+        <div class="detail-header">
+          <div class="back-button" (click)="backToMessages()">
+            <i class="fas fa-arrow-left"></i>
+            <span>Retour aux messages</span>
+          </div>
+          <h2>{{ selectedMessage.sujet }}</h2>
+        </div>
+
+        <div class="message-info">
+          <div class="message-sender-info">
+            <div class="sender-avatar" [style.background-color]="selectedMessage.expediteur === 'enseignant' ? 'var(--primary-color)' : 'var(--primary-light)'">
+              {{ selectedMessage.avatarExpediteur }}
+            </div>
+            <div class="sender-details">
+              <h3>{{ selectedMessage.nomExpediteur }}</h3>
+              <p>{{ selectedMessage.expediteur === 'enseignant' ? 'Enseignant' : 'Étudiant' }}</p>
+            </div>
+          </div>
+          <div class="message-meta-info">
+            <div class="meta-item">
+              <i class="fas fa-calendar-alt"></i>
+              <span>{{ formatDate(selectedMessage.dateEnvoi) }}</span>
+            </div>
+            <div class="meta-item">
+              <i class="fas fa-book"></i>
+              <span>{{ selectedMessage.matiere }}</span>
+            </div>
+            <div class="meta-item" *ngIf="selectedMessage.expediteur === 'etudiant'">
+              <i class="fas fa-user"></i>
+              <span>À: {{ selectedMessage.destinataire }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="message-body">
+          <p [innerHTML]="formatMessageContent(selectedMessage.contenu)"></p>
+        </div>
+
+        <!-- Réponses au message -->
+        <div *ngIf="selectedMessage.reponses && selectedMessage.reponses.length > 0" class="message-replies">
+          <h3>Réponses</h3>
+          <div *ngFor="let reponse of selectedMessage.reponses" class="reply-item">
+            <div class="reply-header">
+              <div class="reply-sender">
+                <div class="sender-avatar-small" [style.background-color]="reponse.expediteur === 'enseignant' ? 'var(--primary-color)' : 'var(--primary-light)'">
+                  {{ reponse.avatarExpediteur }}
+                </div>
+                <div class="sender-info">
+                  <h4>{{ reponse.nomExpediteur }}</h4>
+                  <span>{{ formatDate(reponse.dateEnvoi) }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="reply-content">
+              <p [innerHTML]="formatContent(reponse.contenu)"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulaire de réponse -->
+        <div class="reply-form">
+          <h3>Répondre</h3>
+          <textarea #reponseInput rows="4" placeholder="Rédigez votre réponse ici..."></textarea>
+          <div class="form-actions">
+            <button class="btn-primary" [disabled]="isSubmitting" (click)="repondreMessage(selectedMessage, reponseInput.value); reponseInput.value = ''">
+              <i class="fas" [ngClass]="isSubmitting ? 'fa-spinner fa-spin' : 'fa-reply'"></i>
+              {{ isSubmitting ? 'Envoi en cours...' : 'Envoyer la réponse' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,258 @@
+<div class="departements-container">
+  <div class="departements-header">
+    <h1>Gestion des Départements</h1>
+    <button class="btn-add" (click)="toggleAddForm()">
+      <i class="fas fa-plus"></i> Ajouter un département
+    </button>
+  </div>
+
+  <div class="departements-content">
+    <!-- Liste des départements -->
+    <div class="departements-list">
+      <div class="departement-card" *ngFor="let departement of departements"
+           [ngClass]="{'selected': selectedDepartement === departement}"
+           [ngStyle]="{'border-left': '5px solid ' + departement.couleur}">
+        <div class="departement-icon" [ngStyle]="{'background-color': departement.couleur}">
+          <i class="fas fa-university"></i>
+        </div>
+        <div class="departement-info" (click)="selectDepartement(departement)">
+          <h3>{{departement.nom}}</h3>
+          <p class="chef">Chef: {{departement.chefDepartement}}</p>
+          <div class="departement-stats">
+            <span class="departement-stat">
+              <i class="fas fa-user-graduate"></i> {{departement.nbEtudiants}}
+            </span>
+            <span class="departement-stat">
+              <i class="fas fa-chalkboard-teacher"></i> {{departement.nbEnseignants}}
+            </span>
+            <span class="departement-stat">
+              <i class="fas fa-graduation-cap"></i> {{departement.specialites?.length || 0}}
+            </span>
+            <span class="departement-stat">
+              <i class="fas fa-layer-group"></i> 9
+            </span>
+          </div>
+        </div>
+        <div class="departement-actions">
+          <button class="btn-edit-small" (click)="editDepartement(departement)">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn-delete-small" (click)="departement.id && deleteDepartement(departement.id)">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Détails du département sélectionné -->
+    <div class="departement-detail" *ngIf="selectedDepartement">
+      <div class="detail-header" [ngStyle]="{'background': 'linear-gradient(135deg, ' + (selectedDepartement.couleur || '#000000') + ' 0%, ' + lightenColor(selectedDepartement.couleur || '#000000', 20) + ' 100%)'}">
+        <div class="header-content">
+          <h2>{{selectedDepartement.nom}}</h2>
+          <p>Dirigé par: {{selectedDepartement.chefDepartement}}</p>
+        </div>
+        <div class="actions">
+          <button class="btn-edit" (click)="editDepartement(selectedDepartement)">
+            <i class="fas fa-edit"></i> Modifier
+          </button>
+          <button class="btn-delete" (click)="deleteDepartement(selectedDepartement.id ?? '')">
+            <i class="fas fa-trash"></i> Supprimer
+          </button>
+        </div>
+      </div>
+      
+      <div class="detail-content">
+        <!-- Dashboard du département -->
+        <div class="stats-dashboard">
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-user-graduate"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{selectedDepartement.nbEtudiants}}</div>
+              <div class="stat-label">Étudiants</div>
+            </div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{selectedDepartement.nbEnseignants}}</div>
+              <div class="stat-label">Enseignants</div>
+            </div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-graduation-cap"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{selectedDepartement.specialites?.length || 0}}</div>
+              <div class="stat-label">Spécialités</div>
+            </div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-layer-group"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">9</div>
+              <div class="stat-label">Niveaux</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Informations générales -->
+        <div class="detail-section">
+          <div class="section-header">
+            <h3><i class="fas fa-info-circle"></i> Informations générales</h3>
+          </div>
+          <div class="info-content">
+            <div class="info-row">
+              <div class="info-label">Description:</div>
+              <div class="info-value">{{selectedDepartement.description}}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Chef de département:</div>
+              <div class="info-value">
+                <div class="chef-info">
+                  <div class="chef-avatar">
+                    <i class="fas fa-user"></i>
+                  </div>
+                  <div class="chef-details">
+                    <div class="chef-name">{{selectedDepartement.chefDepartement}}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message si aucun département n'est sélectionné -->
+    <div class="departement-placeholder" *ngIf="!selectedDepartement">
+      <div class="placeholder-icon">
+        <i class="fas fa-university"></i>
+      </div>
+      <h3>Bienvenue dans la gestion des départements</h3>
+      <p>Sélectionnez un département pour voir les détails ou créez-en un nouveau</p>
+      <button class="btn-add-large" (click)="toggleAddForm()">
+        <i class="fas fa-plus"></i> Ajouter un département
+      </button>
+    </div>
+  </div>
+
+  <!-- Formulaire d'ajout de département -->
+  <div class="add-form-overlay" *ngIf="showAddForm">
+    <div class="add-form">
+      <div class="form-header">
+        <h2>Ajouter un nouveau département</h2>
+        <button class="btn-close" (click)="toggleAddForm()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="form-content">
+        <div class="form-group">
+          <label>Nom du département</label>
+          <input type="text" [(ngModel)]="newDepartement.nom" placeholder="Ex: Mathématiques">
+        </div>
+        
+        <div class="form-group">
+          <label>Description</label>
+          <textarea [(ngModel)]="newDepartement.description" placeholder="Description du département"></textarea>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group half">
+            <label>Chef de département</label>
+            <input type="text" [(ngModel)]="newDepartement.chefDepartement" placeholder="Nom complet">
+          </div>
+          
+          <div class="form-group half">
+            <label>Email du chef</label>
+            <input type="email" [(ngModel)]="newDepartement.emailChef" placeholder="exemple@universite.fr">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group half">
+            <label>Couleur</label>
+            <input type="color" [(ngModel)]="newDepartement.couleur">
+          </div>
+          
+          <div class="form-group half">
+            <label>Date de création</label>
+            <input type="date" [(ngModel)]="newDepartement.dateCreation">
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-actions">
+        <button class="btn-cancel" (click)="toggleAddForm()">Annuler</button>
+        <button class="btn-save" (click)="addDepartement()" [disabled]="!newDepartement.nom || !newDepartement.chefDepartement">
+          <i class="fas fa-save"></i> Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Formulaire de modification de département -->
+  <div class="edit-form-overlay" *ngIf="showEditForm">
+    <div class="edit-form">
+      <div class="form-header">
+        <h2>Modifier le département</h2>
+        <button class="btn-close" (click)="toggleEditForm()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="form-content">
+        <div class="form-group">
+          <label>Nom du département</label>
+          <input type="text" [(ngModel)]="editingDepartement.nom" placeholder="Ex: Mathématiques">
+        </div>
+        
+        <div class="form-group">
+          <label>Description</label>
+          <textarea [(ngModel)]="editingDepartement.description" placeholder="Description du département"></textarea>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group half">
+            <label>Chef de département</label>
+            <input type="text" [(ngModel)]="editingDepartement.chefDepartement" placeholder="Nom complet">
+          </div>
+          
+          <div class="form-group half">
+            <label>Email du chef</label>
+            <input type="email" [(ngModel)]="editingDepartement.emailChef" placeholder="exemple@universite.fr">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group half">
+            <label>Couleur</label>
+            <input type="color" [(ngModel)]="editingDepartement.couleur">
+          </div>
+          
+          <div class="form-group half">
+            <label>Date de création</label>
+            <input type="date" [(ngModel)]="editingDepartement.dateCreation">
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-actions">
+        <button class="btn-cancel" (click)="toggleEditForm()">Annuler</button>
+        <button class="btn-save" (click)="updateDepartement()" [disabled]="!editingDepartement.nom || !editingDepartement.chefDepartement">
+          <i class="fas fa-save"></i> Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

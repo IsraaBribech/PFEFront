@@ -1,0 +1,433 @@
+<div class="enseignant-container">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <img src="assets/images/isg.png" alt="Logo ISG EduLink" class="logo-img">
+        <span class="logo-text">ISG EduLink</span>
+      </div>
+      <!-- Bouton de profil -->
+      <button class="profile-button" routerLink="/troixieme-interface/eduprofil">
+        <div class="enseignant-avatar">{{ etudiantName[0] }}</div>
+        <div class="enseignant-details">
+          <h3>{{ etudiantName }}</h3>
+          <p>{{ etudiantEmail }}</p>
+        </div>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <ul>
+        <li routerLink="/troixieme-interface" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+          <i class="fas fa-home"></i>
+          <span>Tableau de bord</span>
+        </li>
+        <li routerLink="/troixieme-interface/cour-suivie" routerLinkActive="active">
+          <i class="fas fa-book"></i>
+          <span>Mes cours</span>
+        </li>
+        <li routerLink="/troixieme-interface/devoir-realiser" routerLinkActive="active">
+          <i class="fas fa-tasks"></i>
+          <span>Mes devoirs</span>
+        </li>
+        <li routerLink="/troixieme-interface/quiz-repond" routerLinkActive="active">
+          <i class="fas fa-question-circle"></i>
+          <span>Mes quiz</span>
+        </li>
+        <li routerLink="/troixieme-interface/message-envoyer" routerLinkActive="active">
+          <i class="fas fa-envelope"></i>
+          <span>Forum de discussion</span>
+        </li>
+        <li routerLink="/troixieme-interface/notification" routerLinkActive="active">
+          <i class="fas fa-bell"></i>
+          <span>Notification</span>
+          <span class="badge" *ngIf="getUnreadNotificationsCount() > 0">{{ getUnreadNotificationsCount() }}</span>
+        </li>
+      </ul>
+      
+      <!-- Bouton de déconnexion -->
+      <div class="logout-container">
+        <button class="logout-button" (click)="logout()">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Déconnexion</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="content-header">
+      <div class="header-title">
+        <h1>Mes cours</h1>
+      </div>
+      <div class="header-actions">
+        <div class="search-bar">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Rechercher un cours...">
+        </div>
+        <!-- Notification avec dropdown -->
+        <div class="notification-wrapper">
+          <div class="notification-btn" (click)="toggleNotificationDropdown($event)">
+            <i class="fas fa-bell"></i>
+            <span class="badge" *ngIf="getUnreadNotificationsCount() > 0">{{ getUnreadNotificationsCount() }}</span>
+          </div>
+          
+          <!-- Dropdown de notifications -->
+          <div class="notification-dropdown" *ngIf="showNotificationDropdown">
+            <div class="notification-header">
+              <h3>Notifications</h3>
+              <span class="notification-count">{{ getUnreadNotificationsCount() }} non lues</span>
+            </div>
+            
+            <!-- Onglets pour basculer entre les types de notifications -->
+            <div class="notification-tabs">
+              <button 
+                [class.active]="activeNotificationTab === 'academic'" 
+                (click)="setActiveNotificationTab('academic')">
+                <i class="fas fa-graduation-cap"></i> Académique
+              </button>
+              <button 
+                [class.active]="activeNotificationTab === 'messages'" 
+                (click)="setActiveNotificationTab('messages')">
+                <i class="fas fa-envelope"></i> Messages
+                <span class="badge-small" *ngIf="getUnreadMessageNotificationsCount() > 0">{{ getUnreadMessageNotificationsCount() }}</span>
+              </button>
+            </div>
+            
+            <div class="notification-list">
+              <!-- Onglet des notifications académiques -->
+              <div *ngIf="activeNotificationTab === 'academic'">
+                <div class="notification-empty" *ngIf="academicNotifications.length === 0">
+                  <i class="fas fa-bell-slash"></i>
+                  <p>Aucune notification académique</p>
+                </div>
+                
+                <div class="notification-item" *ngFor="let notification of academicNotifications.slice(0, 5)" 
+                     [class.unread]="!notification.read"
+                     (click)="markAcademicNotificationAsRead(notification)">
+                  <div class="notification-item-icon" [class]="notification.type">
+                    <i [class]="'fas ' + getAcademicNotificationIcon(notification.type)"></i>
+                  </div>
+                  <div class="notification-content">
+                    <div class="notification-title">{{ notification.title }}</div>
+                    <div class="notification-message">{{ notification.message }}</div>
+                    <div class="notification-time">{{ formatTimeAgo(notification.date) }}</div>
+                  </div>
+                  <div class="notification-status" *ngIf="!notification.read"></div>
+                </div>
+              </div>
+              
+              <!-- Onglet des notifications de messages -->
+              <div *ngIf="activeNotificationTab === 'messages'">
+                <div class="notification-empty" *ngIf="messageNotifications.length === 0">
+                  <i class="fas fa-envelope-open"></i>
+                  <p>Aucun message non lu</p>
+                </div>
+                
+                <div class="notification-item" *ngFor="let notification of messageNotifications.slice(0, 5)" 
+                     [class.unread]="!notification.read"
+                     (click)="markMessageNotificationAsRead(notification)">
+                  <div class="notification-item-icon message">
+                    <i class="fas fa-envelope"></i>
+                  </div>
+                  <div class="notification-content">
+                    <div class="notification-title">{{ notification.title }}</div>
+                    <div class="notification-message">{{ notification.message }}</div>
+                    <div class="notification-time">{{ formatTimeAgo(notification.date) }}</div>
+                  </div>
+                  <div class="notification-status" *ngIf="!notification.read"></div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="notification-footer">
+              <button class="btn-view-all" (click)="navigateToNotifications()">
+                Voir toutes les notifications
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Indicateur de chargement -->
+    <div *ngIf="loading" class="loading-container">
+      <div class="spinner"></div>
+      <p>Chargement des cours...</p>
+    </div>
+
+    <!-- Message d'erreur -->
+    <div *ngIf="error" class="error-container">
+      <i class="fas fa-exclamation-triangle"></i>
+      <h3>Erreur de chargement</h3>
+      <p>Impossible de charger les données depuis le serveur.</p>
+      <button class="btn-retry" (click)="refreshData()">
+        <i class="fas fa-sync-alt"></i> Réessayer
+      </button>
+    </div>
+
+    <!-- Contenu principal (affiché uniquement si les données sont chargées) -->
+    <div class="cours-container" *ngIf="!loading && !error">
+      <!-- Si aucune matière n'est sélectionnée, afficher la liste des matières -->
+      <div *ngIf="!selectedMatiere" class="matieres-section">
+        <!-- Onglets des semestres -->
+        <div class="semester-tabs">
+          <div class="tab" [class.active]="activeSemester === 'semestre1'" (click)="changeSemester('semestre1')">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Semestre 1</span>
+          </div>
+          <div class="tab" [class.active]="activeSemester === 'semestre2'" (click)="changeSemester('semestre2')">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Semestre 2</span>
+          </div>
+        </div>
+        
+        <!-- Matières du Semestre 1 -->
+        <div class="semester-content" *ngIf="activeSemester === 'semestre1'">
+          <div *ngIf="matieresSemestre1.length === 0" class="empty-state">
+            <i class="fas fa-book"></i>
+            <h3>Aucun cours disponible</h3>
+            <p>Il n'y a pas encore de cours pour ce semestre.</p>
+          </div>
+          
+          <div class="matieres-grid" *ngIf="matieresSemestre1.length > 0">
+            <div class="matiere-card" *ngFor="let matiere of matieresSemestre1" (click)="selectMatiere(matiere)">
+              <div class="matiere-header" [style.background-color]="matiere.couleur">
+                <div class="matiere-icon">
+                  <i class="fas" [ngClass]="matiere.icon"></i>
+                </div>
+              </div>
+              <div class="matiere-body">
+                <h3>{{ matiere.nom }}</h3>
+                <div class="matiere-info">
+                  <div class="info-item">
+                    <i class="fas fa-building"></i>
+                    <span>{{ matiere.departement }}</span>
+                  </div>
+                  <div class="info-row">
+                    <div class="info-col">
+                      <span class="info-label">Crédits</span>
+                      <span class="info-value">{{ matiere.credits }}</span>
+                    </div>
+                    <div class="info-col">
+                      <span class="info-label">Heures</span>
+                      <span class="info-value">{{ matiere.heures }}</span>
+                    </div>
+                  </div>
+                  <div class="content-types-preview">
+                    <span class="content-type-badge" [class.available]="matiere.cours.disponible">
+                      <i class="fas fa-book"></i> Cours
+                    </span>
+                    <span class="content-type-badge" [class.available]="matiere.td.disponible">
+                      <i class="fas fa-chalkboard-teacher"></i> TD
+                    </span>
+                    <span class="content-type-badge" [class.available]="matiere.tp.disponible">
+                      <i class="fas fa-laptop-code"></i> TP
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="matiere-footer">
+                <button class="btn-outline">
+                  <i class="fas fa-eye"></i> Voir les chapitres
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Matières du Semestre 2 -->
+        <div class="semester-content" *ngIf="activeSemester === 'semestre2'">
+          <div *ngIf="matieresSemestre2.length === 0" class="empty-state">
+            <i class="fas fa-book"></i>
+            <h3>Aucun cours disponible</h3>
+            <p>Il n'y a pas encore de cours pour ce semestre.</p>
+          </div>
+          
+          <div class="matieres-grid" *ngIf="matieresSemestre2.length > 0">
+            <div class="matiere-card" *ngFor="let matiere of matieresSemestre2" (click)="selectMatiere(matiere)">
+              <div class="matiere-header" [style.background-color]="matiere.couleur">
+                <div class="matiere-icon">
+                  <i class="fas" [ngClass]="matiere.icon"></i>
+                </div>
+              </div>
+              <div class="matiere-body">
+                <h3>{{ matiere.nom }}</h3>
+                <div class="matiere-info">
+                  <div class="info-item">
+                    <i class="fas fa-building"></i>
+                    <span>{{ matiere.departement }}</span>
+                  </div>
+                  <div class="info-row">
+                    <div class="info-col">
+                      <span class="info-label">Crédits</span>
+                      <span class="info-value">{{ matiere.credits }}</span>
+                    </div>
+                    <div class="info-col">
+                      <span class="info-label">Heures</span>
+                      <span class="info-value">{{ matiere.heures }}</span>
+                    </div>
+                  </div>
+                  <div class="content-types-preview">
+                    <span class="content-type-badge" [class.available]="matiere.cours.disponible">
+                      <i class="fas fa-book"></i> Cours
+                    </span>
+                    <span class="content-type-badge" [class.available]="matiere.td.disponible">
+                      <i class="fas fa-chalkboard-teacher"></i> TD
+                    </span>
+                    <span class="content-type-badge" [class.available]="matiere.tp.disponible">
+                      <i class="fas fa-laptop-code"></i> TP
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="matiere-footer">
+                <button class="btn-outline">
+                  <i class="fas fa-eye"></i> Voir les chapitres
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Si une matière est sélectionnée, afficher les chapitres -->
+      <div *ngIf="selectedMatiere" class="chapitres-section">
+        <div class="section-header">
+          <div class="back-button" (click)="backToMatieres()">
+            <i class="fas fa-arrow-left"></i>
+            <span>Retour aux matières</span>
+          </div>
+          <h2>{{ selectedMatiere.nom }}</h2>
+        </div>
+
+        <div class="matiere-details">
+          <div class="matiere-info-card" [style.border-left-color]="selectedMatiere.couleur">
+            <div class="matiere-info-header">
+              <div class="matiere-icon-large" [style.background-color]="selectedMatiere.couleur">
+                <i class="fas" [ngClass]="selectedMatiere.icon"></i>
+              </div>
+              <div class="matiere-info-content">
+                <h3>{{ selectedMatiere.nom }}</h3>
+                <p class="matiere-description" *ngIf="selectedMatiere.description">{{ selectedMatiere.description }}</p>
+                <div class="matiere-meta">
+                  <div class="meta-item">
+                    <i class="fas fa-building"></i>
+                    <span>{{ selectedMatiere.departement }}</span>
+                  </div>
+                  <div class="meta-item">
+                    <i class="fas fa-clock"></i>
+                    <span>{{ selectedMatiere.heures }} heures</span>
+                  </div>
+                  <div class="meta-item">
+                    <i class="fas fa-award"></i>
+                    <span>{{ selectedMatiere.credits }} crédits</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Onglets pour les types de contenu -->
+        <div class="content-tabs">
+          <div 
+            class="tab" 
+            [class.active]="activeContentType === 'cours'" 
+            [class.disabled]="!isContentTypeAvailable('cours')"
+            (click)="changeContentType('cours')"
+          >
+            <i class="fas fa-book"></i>
+            <span>Cours</span>
+            <span class="badge" *ngIf="isContentTypeAvailable('cours')">{{ getChapitresCount('cours') }}</span>
+          </div>
+          <div 
+            class="tab" 
+            [class.active]="activeContentType === 'td'" 
+            [class.disabled]="!isContentTypeAvailable('td')"
+            (click)="changeContentType('td')"
+          >
+            <i class="fas fa-chalkboard-teacher"></i>
+            <span>TD</span>
+            <span class="badge" *ngIf="isContentTypeAvailable('td')">{{ getChapitresCount('td') }}</span>
+          </div>
+          <div 
+            class="tab" 
+            [class.active]="activeContentType === 'tp'" 
+            [class.disabled]="!isContentTypeAvailable('tp')"
+            (click)="changeContentType('tp')"
+          >
+            <i class="fas fa-laptop-code"></i>
+            <span>TP</span>
+            <span class="badge" *ngIf="isContentTypeAvailable('tp')">{{ getChapitresCount('tp') }}</span>
+          </div>
+        </div>
+
+        <!-- Enseignant du type de contenu actif -->
+        <div class="enseignant-info-card" *ngIf="isContentTypeAvailable(activeContentType)">
+          <div class="enseignant-info-header">
+            <div class="enseignant-avatar-large">
+              <i class="fas fa-user-tie"></i>
+            </div>
+            <div class="enseignant-info-content">
+              <h4>Enseignant {{ activeContentType === 'cours' ? 'du cours' : (activeContentType === 'td' ? 'des TD' : 'des TP') }}</h4>
+              <p class="enseignant-name">{{ getActiveEnseignant() }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Liste des chapitres du type de contenu actif -->
+        <div class="chapitres-list" *ngIf="isContentTypeAvailable(activeContentType)">
+          <h3 class="chapitres-title">
+            Chapitres {{ activeContentType === 'cours' ? 'du cours' : (activeContentType === 'td' ? 'des TD' : 'des TP') }}
+          </h3>
+          
+          <div class="chapitre-card" *ngFor="let chapitre of getActiveChapitres(); let i = index">
+            <div class="chapitre-header">
+              <div class="chapitre-number">
+                <span>{{ i + 1 }}</span>
+              </div>
+              <h4>{{ chapitre.titre }}</h4>
+            </div>
+            <div class="chapitre-body">
+              <p>{{ chapitre.description }}</p>
+              <div class="chapitre-meta">
+                <div class="meta-item">
+                  <i class="fas fa-calendar-alt"></i>
+                  <span>Publié le {{ formatDate(chapitre.dateCreation) }}</span>
+                </div>
+                <div class="meta-item">
+                  <i class="fas fa-file-pdf"></i>
+                  <span>{{ getFileSize(chapitre) }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="chapitre-footer">
+              <a (click)="downloadFile(chapitre)" class="btn-download">
+                <i class="fas fa-download"></i> Télécharger le PDF
+              </a>
+              <button class="btn-view">
+                <i class="fas fa-eye"></i> Voir en ligne
+              </button>
+            </div>
+          </div>
+
+          <!-- État vide pour les chapitres -->
+          <div *ngIf="getActiveChapitres().length === 0" class="empty-state">
+            <i class="fas fa-folder-open"></i>
+            <h3>Aucun chapitre disponible</h3>
+            <p>Il n'y a pas encore de chapitres pour ce type de contenu.</p>
+          </div>
+        </div>
+
+        <!-- Message si le type de contenu n'est pas disponible -->
+        <div *ngIf="!isContentTypeAvailable(activeContentType)" class="content-unavailable">
+          <i class="fas fa-exclamation-circle"></i>
+          <h3>Contenu non disponible</h3>
+          <p>Ce type de contenu n'est pas disponible pour cette matière.</p>
+          <p>Veuillez sélectionner un autre type de contenu.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
