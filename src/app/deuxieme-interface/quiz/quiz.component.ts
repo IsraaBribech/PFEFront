@@ -83,6 +83,7 @@ export class QuizComponent implements OnInit, OnDestroy {
       duration: [30, [Validators.required, Validators.min(5), Validators.max(180)]],
       dueDate: ["", Validators.required],
       questions: this.fb.array([]),
+      published: [true], // Ajout du champ published avec valeur par défaut à true
     })
   }
 
@@ -148,13 +149,16 @@ export class QuizComponent implements OnInit, OnDestroy {
     )
   }
 
-  // Nouvelle méthode pour charger les soumissions de quiz
+  // Méthode pour charger les soumissions de quiz
   loadQuizSubmissions(): void {
     this.quizzes.forEach((quiz) => {
       if (quiz._id) {
         this.subscriptions.push(
           this.soumissionsService.getSoumissionsByQuiz(quiz._id).subscribe(
-            (submissions: QuizSubmission[]) => {
+            (response: any) => {
+              // Extraire les données de la réponse
+              const submissions = response.data || []
+
               // Mettre à jour le quiz avec les informations de soumission
               quiz.responseCount = submissions.length
 
@@ -164,25 +168,28 @@ export class QuizComponent implements OnInit, OnDestroy {
               }
 
               submissions.forEach((submission: QuizSubmission) => {
-                const existingStudentIndex = quiz.students!.findIndex((s) => s._id === submission.etudiantId)
+                // Créer un objet étudiant à partir des données de soumission
+                const student: Student = {
+                  _id: submission.etudiantId,
+                  name: submission.etudiantName,
+                  email: submission.etudiantEmail || "Non disponible",
+                  matricule: submission.etudiantMatricule || "Non disponible",
+                  group: submission.etudiantGroupe || "Non disponible",
+                  hasResponded: true,
+                  submissionDate: new Date(submission.dateCompletion),
+                  score: submission.score,
+                  responses: submission.reponses,
+                }
+
+                // Vérifier si l'étudiant existe déjà dans la liste
+                const existingStudentIndex = quiz.students!.findIndex((s) => s._id === student._id)
 
                 if (existingStudentIndex >= 0) {
                   // Mettre à jour l'étudiant existant
-                  quiz.students![existingStudentIndex].hasResponded = true
-                  quiz.students![existingStudentIndex].submissionDate = new Date(submission.dateCompletion)
-                  quiz.students![existingStudentIndex].score = submission.score
+                  quiz.students![existingStudentIndex] = student
                 } else {
                   // Ajouter un nouvel étudiant
-                  quiz.students!.push({
-                    _id: submission.etudiantId,
-                    name: submission.etudiantName,
-                    email: submission.etudiantEmail || "Non disponible",
-                    matricule: submission.etudiantMatricule || "Non disponible",
-                    group: submission.etudiantGroupe || "Non disponible",
-                    hasResponded: true,
-                    submissionDate: new Date(submission.dateCompletion),
-                    score: submission.score,
-                  })
+                  quiz.students!.push(student)
                 }
               })
 
@@ -336,6 +343,7 @@ export class QuizComponent implements OnInit, OnDestroy {
         type: quiz.type || "Cours",
         duration: quiz.duration || 30,
         dueDate: this.formatDateForInput(quiz.dueDate),
+        published: quiz.published !== undefined ? quiz.published : true,
       })
 
       // Réinitialiser les questions
@@ -362,6 +370,7 @@ export class QuizComponent implements OnInit, OnDestroy {
         type: "Cours",
         duration: 30,
         dueDate: "",
+        published: true,
       })
       this.questions.clear()
     }
@@ -376,6 +385,7 @@ export class QuizComponent implements OnInit, OnDestroy {
     this.quizForm.reset({
       type: "Cours",
       duration: 30,
+      published: true,
     })
     this.questions.clear()
   }
@@ -388,8 +398,11 @@ export class QuizComponent implements OnInit, OnDestroy {
     if (quiz._id) {
       this.subscriptions.push(
         this.soumissionsService.getSoumissionsByQuiz(quiz._id).subscribe(
-          (submissions: QuizSubmission[]) => {
-            console.log(`Soumissions récupérées pour le quiz ${quiz._id}:`, submissions)
+          (response: any) => {
+            console.log(`Soumissions récupérées pour le quiz ${quiz._id}:`, response)
+
+            // Extraire les données de la réponse
+            const submissions = response.data || []
 
             // Mettre à jour les informations des étudiants avec les soumissions
             if (!quiz.students) {
@@ -558,6 +571,7 @@ export class QuizComponent implements OnInit, OnDestroy {
       questions: questions,
       teacher: this.enseignantId || "teacher-id", // ID de l'enseignant connecté
       createdAt: new Date(),
+      published: formValue.published, // Ajouter le champ published
     }
 
     if (this.editMode && this.selectedQuiz?._id) {

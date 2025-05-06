@@ -49,6 +49,8 @@
         </select>
       </div>
 
+    
+
       <div class="filter-actions">
         <button class="btn-filter" (click)="applyFilters()">
           <i class="fas fa-filter"></i> Filtrer
@@ -138,10 +140,7 @@
     </div>
 
     <!-- Détail de l'étudiant amélioré avec toutes les données -->
-    <div class="etudiant-detail" *ngIf="selectedEtudiant && showDetailPanel"
-
-```html file="etudiants.component.html" continued
- @slideIn>
+    <div class="etudiant-detail" *ngIf="selectedEtudiant && showDetailPanel" @slideIn>
       <div class="detail-header" [ngStyle]="{'background-color': selectedEtudiant.couleur}">
         <div class="header-content">
           <button class="btn-close-detail" (click)="closeDetailPanel()">
@@ -157,7 +156,7 @@
         </div>
       </div>
       <div class="detail-content">
-        &lt;!-- Section d'informations personnelles -->
+        <!-- Section d'informations personnelles -->
         <div class="detail-section">
           <h3><i class="fas fa-user-circle"></i> Informations personnelles</h3>
           <div class="info-row">
@@ -190,7 +189,7 @@
           </div>
         </div>
 
-        &lt;!-- Section d'adresse -->
+        <!-- Section d'adresse -->
         <div class="detail-section">
           <h3><i class="fas fa-map-marker-alt"></i> Adresse</h3>
           <div class="info-row">
@@ -211,7 +210,7 @@
           </div>
         </div>
 
-        &lt;!-- Section d'informations académiques -->
+        <!-- Section d'informations académiques -->
         <div class="detail-section">
           <h3><i class="fas fa-graduation-cap"></i> Informations académiques</h3>
           <div class="info-row">
@@ -243,11 +242,11 @@
     </div>
   </div>
 
- &lt;!-- Formulaire Modal pour les Utilisateurs -->
+ <!-- Formulaire Modal pour les Utilisateurs -->
 <div class="modal-overlay" *ngIf="activeModal === 'user'">
   <div class="modal-container">
     <div class="modal-header">
-      <h2>{{ editMode ? 'Modifier' : 'Ajouter' }} un étudiant</h2>
+      <h2>Ajouter un étudiant</h2>
       <button class="close-button" (click)="hideModal()">
         <i class="fas fa-times"></i>
       </button>
@@ -255,7 +254,7 @@
     <div class="modal-body">
       <form [formGroup]="userForm" (ngSubmit)="submitForm('user')">
     
-        &lt;!-- Section informations personnelles -->
+        <!-- Section informations personnelles -->
         <div class="form-section">
           <h3><i class="fas fa-user-circle"></i> Informations personnelles</h3>
           
@@ -302,7 +301,7 @@
           </div>
         </div>
 
-        &lt;!-- Section informations d'identification -->
+        <!-- Section informations d'identification -->
         <div class="form-section">
           <h3><i class="fas fa-id-card"></i> Informations d'identification</h3>
           
@@ -341,7 +340,7 @@
           </div>
         </div>
 
-        &lt;!-- Section adresse -->
+        <!-- Section adresse -->
         <div class="form-section">
           <h3><i class="fas fa-map-marker-alt"></i> Adresse</h3>
           
@@ -406,24 +405,26 @@
           </div>
         </div>
 
-        &lt;!-- Section informations académiques -->
+        <!-- Section informations académiques -->
         <div class="form-section">
           <h3><i class="fas fa-graduation-cap"></i> Informations académiques</h3>
           
           <div class="form-group">
-            <label for="level">Niveau <span class="required">*</span></label>
-            <select id="level" formControlName="level" class="form-control">
-              <option value="">{{ filteredNiveaux.length ? 'Sélectionnez le niveau' : 'Aucun niveau disponible' }}</option>
-              <option *ngFor="let niveau of filteredNiveaux" [value]="niveau._id">{{ niveau.name }}</option>
+            <label for="userLevel">Niveau <span class="required">*</span></label>
+            <select id="userLevel" formControlName="level">
+              <option value="">Sélectionnez le niveau</option>
+              <option *ngFor="let niveau of niveaux" [value]="niveau._id">
+                {{ niveau.name }}
+              </option>
             </select>
-            <div *ngIf="etudiantForm.get('level')?.invalid && etudiantForm.get('level')?.touched" class="error-message">
+            <div *ngIf="userForm.get('level')?.invalid && userForm.get('level')?.touched" class="error-message">
               Le niveau est requis
             </div>
           </div>
           
           <div class="form-group">
             <label for="userDepartment">Département <span class="required">*</span></label>
-            <select id="userDepartment" formControlName="department">
+            <select id="userDepartment" formControlName="department" (change)="onDepartmentChange()">
               <option value="">Sélectionnez le département</option>
               <option *ngFor="let dept of departments" [value]="dept._id">
                 {{ dept.name }}
@@ -435,43 +436,33 @@
           </div>
 
           <div class="form-group">
-            <label for="specialty">Spécialité <span class="required">*</span></label>
-            <select id="specialty" formControlName="specialty" class="form-control">
-              <option value="">{{ filteredSpecialites.length ? 'Sélectionnez la spécialité' : 'Aucune spécialité disponible' }}</option>
-              <option *ngFor="let spec of filteredSpecialites" [value]="spec._id">{{ spec.name }}</option>
+            <label for="userSpecialty">Spécialité <span class="required">*</span></label>
+            <select id="userSpecialty" formControlName="specialty" [disabled]="!userForm.get('department')?.value || filteredSpecialties.length === 0">
+              <option value="">{{ filteredSpecialties.length === 0 ? 'Aucune spécialité disponible' : 'Sélectionnez la spécialité' }}</option>
+              <option *ngFor="let spec of filteredSpecialties" [value]="spec._id">
+                {{ spec.name }}
+              </option>
             </select>
-            <div *ngIf="etudiantForm.get('specialty')?.invalid && etudiantForm.get('specialty')?.touched" class="error-message">
+            <div *ngIf="userForm.get('specialty')?.invalid && userForm.get('specialty')?.touched" class="error-message">
               La spécialité est requise
             </div>
           </div>
           
-          &lt;!-- Nouveaux champs pour filière, groupe et sous-groupe -->
-          <div class="form-group">
-            <label for="userFiliere">Filière <span class="required">*</span></label>
-            <select id="userFiliere" formControlName="filiere" [disabled]="!userForm.get('specialty')?.value || filteredFilieres.length === 0">
-              <option value="">{{ filteredFilieres.length === 0 ? 'Aucune filière disponible' : 'Sélectionnez la filière' }}</option>
-              <option *ngFor="let filiere of filteredFilieres" [value]="filiere._id">
-                {{ filiere.name }}
-              </option>
-            </select>
-            <div *ngIf="userForm.get('filiere')?.invalid && userForm.get('filiere')?.touched" class="error-message">
-              La filière est requise
-            </div>
-          </div>
-          
+          <!-- Nouveaux champs pour groupe et sous-groupe -->
           <div class="form-group">
             <label for="userGroup">Groupe <span class="required">*</span></label>
-            <select id="userGroup" formControlName="group" [disabled]="!userForm.get('filiere')?.value || filteredGroups.length === 0">
-              <option value="">{{ filteredGroups.length === 0 ? 'Aucun groupe disponible' : 'Sélectionnez le groupe' }}</option>
-              <option *ngFor="let group of filteredGroups" [value]="group.code">
-                {{ group.name }}
-              </option>
+            <select id="userGroup" formControlName="group" (change)="onGroupChange()">
+              <option value="">Sélectionnez le groupe</option>
+              <option value="1">Groupe 1</option>
+              <option value="2">Groupe 2</option>
+              <option value="3">Groupe 3</option>
+              <option value="4">Groupe 4</option>
+              <option value="5">Groupe 5</option>
             </select>
             <div *ngIf="userForm.get('group')?.invalid && userForm.get('group')?.touched" class="error-message">
               Le groupe est requis
             </div>
           </div>
-          
           <div class="form-group" *ngIf="userForm.get('group')?.value">
             <label for="userSubGroup">Sous-groupe <span class="required">*</span></label>
             <select id="userSubGroup" formControlName="subGroup">
@@ -485,8 +476,8 @@
             </div>
           </div>  
 
-        &lt;!-- Section sécurité -->
-        <div class="form-section" *ngIf="!editMode">
+        <!-- Section sécurité -->
+        <div class="form-section">
           <h3><i class="fas fa-lock"></i> Sécurité</h3>
           
           <div class="form-group">

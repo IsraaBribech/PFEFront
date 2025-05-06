@@ -21,7 +21,7 @@ export interface Specialite {
   providedIn: "root",
 })
 export class SpecialitesService {
-  private apiUrl = "http://localhost:5000/api/specialites"
+  private apiUrl = "http://localhost:5001/api/specialites"
 
   // Cache pour les spécialités
   private specialitesCache: Map<string, Specialite> = new Map()

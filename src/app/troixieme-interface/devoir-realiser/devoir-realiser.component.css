@@ -131,8 +131,7 @@
 .logo-text {
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--dark-color);
-}
+  color: var(--primary-color);}
 
 /* Style pour le bouton de profil */
 .profile-button {

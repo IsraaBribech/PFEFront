@@ -36,7 +36,7 @@ export interface Enseignant {
   providedIn: "root",
 })
 export class EnseignantService {
-  private apiUrl = "http://localhost:5000/api/enseignants" // URL API
+  private apiUrl = "http://localhost:5001/api/enseignants" // URL API
 
   constructor(private http: HttpClient) {
     // Ajoutez ce log pour déboguer

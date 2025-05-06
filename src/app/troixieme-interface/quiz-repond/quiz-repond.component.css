@@ -5,11 +5,11 @@
   --primary-light: rgba(99, 102, 241, 0.1);
   --secondary-color: #f59e0b;
   --secondary-light: rgba(245, 158, 11, 0.1);
+  --success-color: #10b981;
+  --success-light: rgba(16, 185, 129, 0.1);
   --dark-color: #1e293b;
   --light-color: #f8fafc;
   --danger-color: #ef4444;
-  --success-color: #10b981;
-  --warning-color: #f59e0b;
   --text-dark: #334155;
   --text-light: #94a3b8;
   --border-color: #e2e8f0;
@@ -20,7 +20,7 @@
   --header-height: 70px;
 
   /* Couleurs pour les différentes catégories */
-  --cours-color: #6366f1;
+  --cours-color: #4f46e5;
   --devoir-color: #f59e0b;
   --quiz-color: #8b5cf6;
   --message-color: #10b981;
@@ -34,25 +34,6 @@
   display: flex;
   min-height: 100vh;
   background-color: #f1f5f9;
-}
-
-.btn-primary {
-  padding: 0.625rem 1rem;
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.813rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: var(--transition);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btn-primary:hover {
-  background-color: #5254d3;
 }
 
 /* Sidebar Styles */
@@ -74,32 +55,20 @@
 }
 
 .logo {
-  height: 30px;
-  width: auto;
-  object-fit: contain;
   display: flex;
   align-items: center;
   margin-bottom: 1.25rem;
 }
 
-.logo-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
+.logo-img {
   height: 40px;
-  background-color: var(--primary-color);
-  color: white;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 1.2rem;
-  margin-right: 0.75rem;
+  margin-right: 10px;
 }
 
 .logo-text {
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--dark-color);
+  color: var(--primary-color);
 }
 
 /* Style pour le bouton de profil */
@@ -168,6 +137,8 @@
   padding: 1rem 0;
   flex: 1;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-nav ul {
@@ -177,13 +148,14 @@
 }
 
 .sidebar-nav ul li {
-  padding: 0.625rem 1.25rem;
   display: flex;
   align-items: center;
+  padding: 0.75rem 1.25rem;
   font-size: 0.9rem;
   color: var(--text-dark);
   cursor: pointer;
   transition: var(--transition);
+  position: relative;
 }
 
 .sidebar-nav ul li i {
@@ -261,22 +233,6 @@
   font-size: 1rem;
 }
 
-/* Responsive pour le bouton de déconnexion */
-@media (max-width: 991px) {
-  .logout-button span {
-    display: none;
-  }
-
-  .logout-button i {
-    margin-right: 0;
-  }
-
-  .logout-button {
-    justify-content: center;
-    padding: 0.75rem;
-  }
-}
-
 /* Main Content */
 .main-content {
   flex: 1;
@@ -307,26 +263,28 @@
 
 .search-bar {
   position: relative;
-}
-
-.search-bar input {
-  padding: 0.625rem 1rem 0.625rem 2.5rem;
-  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  background-color: white;
   border-radius: 8px;
-  width: 250px;
-  font-size: 0.875rem;
-  transition: var(--transition);
+  padding: 0.5rem 1rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .search-bar i {
-  position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
   color: var(--text-light);
+  margin-right: 0.5rem;
 }
 
-/* Notification */
+.search-bar input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.875rem;
+  width: 200px;
+}
+
+/* Notification - Style exact comme dans l'image */
 .notification-wrapper {
   position: relative;
 }
@@ -371,7 +329,7 @@
   padding: 0 5px;
 }
 
-/* Dropdown de notifications - Nouveau style */
+/* Dropdown de notifications - Style exact comme dans l'image */
 .notification-dropdown {
   position: absolute;
   top: 50px;
@@ -382,18 +340,6 @@
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
   z-index: 100;
   overflow: hidden;
-  animation: slideDown 0.3s ease-in-out;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .notification-header {
@@ -406,29 +352,28 @@
 
 .notification-header h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--dark-color);
 }
 
 .notification-count {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: var(--notification-color);
   font-weight: 500;
 }
 
-/* Onglets dans le dropdown de notifications - Nouveau style */
-.notification-dropdown .notification-tabs {
+/* Onglets dans le dropdown de notifications - Style exact comme dans l'image */
+.notification-tabs {
   display: flex;
   border-bottom: 1px solid var(--border-color);
 }
 
-.notification-dropdown .notification-tabs button {
+.notification-tabs button {
   flex: 1;
   padding: 0.75rem 0.5rem;
   background-color: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-dark);
@@ -438,22 +383,15 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  position: relative;
 }
 
-.notification-dropdown .notification-tabs button i {
-  font-size: 1rem;
-}
-
-.notification-dropdown .notification-tabs button:hover {
-  color: var(--primary-color);
-}
-
-.notification-dropdown .notification-tabs button.active {
+.notification-tabs button.active {
   color: var(--primary-color);
   border-bottom: 2px solid var(--primary-color);
 }
 
-.notification-dropdown .badge-small {
+.notification-tabs button .badge {
   background-color: var(--notification-color);
   color: white;
   font-size: 0.75rem;
@@ -464,6 +402,7 @@
   align-items: center;
   justify-content: center;
   padding: 0 6px;
+  margin-left: 0.25rem;
 }
 
 .notification-list {
@@ -471,7 +410,7 @@
   overflow-y: auto;
 }
 
-/* Nouveau style pour les éléments de notification */
+/* Style exact des éléments de notification comme dans l'image */
 .notification-item {
   display: flex;
   padding: 1rem;
@@ -482,14 +421,9 @@
 }
 
 .notification-item:hover {
-  background-color: #f8fafc;
+  background-color: var(--primary-light);
 }
 
-.notification-item.unread {
-  background-color: #f8fafc;
-}
-
-/* Nouveau style pour les icônes de notification */
 .notification-item-icon {
   width: 48px;
   height: 48px;
@@ -531,14 +465,6 @@
   font-weight: 600;
   color: var(--dark-color);
   margin-bottom: 0.25rem;
-  display: flex;
-  align-items: center;
-}
-
-.notification-title .count {
-  margin-left: 0.5rem;
-  font-size: 0.85rem;
-  color: var(--text-dark);
 }
 
 .notification-message {
@@ -553,15 +479,15 @@
   color: var(--text-light);
 }
 
-/* Indicateur de notification non lue */
+/* Indicateur de notification non lue - Style exact comme dans l'image */
 .notification-status {
   width: 8px;
   height: 8px;
   background-color: var(--notification-color);
   border-radius: 50%;
   position: absolute;
-  top: 50%;
   right: 1rem;
+  top: 50%;
   transform: translateY(-50%);
 }
 
@@ -586,7 +512,6 @@
   margin: 0;
 }
 
-/* Nouveau style pour le footer de notifications */
 .notification-footer {
   padding: 0.75rem 1rem;
   text-align: center;
@@ -596,7 +521,7 @@
 .btn-view-all {
   width: 100%;
   padding: 0.75rem;
-  background-color: #f8fafc;
+  background-color: #f0f0ff;
   color: var(--primary-color);
   border: none;
   border-radius: 8px;

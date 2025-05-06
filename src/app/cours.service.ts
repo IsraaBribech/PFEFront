@@ -24,7 +24,7 @@ export interface Cours {
   providedIn: "root",
 })
 export class CoursService {
-  private apiUrl = "http://localhost:5000/api/cours"
+  private apiUrl = "http://localhost:5001/api/cours"
   private httpOptions = {
     headers: new HttpHeaders({
       "Content-Type": "application/json",

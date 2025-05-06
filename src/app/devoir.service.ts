@@ -8,7 +8,7 @@ import { catchError, tap } from "rxjs/operators"
 })
 export class DevoirService {
   // URL de base de l'API
-  private apiBaseUrl = "http://localhost:5000/api"
+  private apiBaseUrl = "http://localhost:5001/api"
   private devoirsUrl = `${this.apiBaseUrl}/devoirs`
 
   constructor(private http: HttpClient) {}

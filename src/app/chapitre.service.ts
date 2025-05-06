@@ -26,7 +26,7 @@ export interface Chapitre {
 })
 export class ChapitreService {
   // URL de l'API correcte
-  private apiUrl = "http://localhost:5000/api/chapitres";
+  private apiUrl = "http://localhost:5001/api/chapitres";
 
   constructor(private http: HttpClient) {}
 

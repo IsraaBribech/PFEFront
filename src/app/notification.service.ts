@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core"
-import  { HttpClient } from "@angular/common/http"
+import { HttpClient } from "@angular/common/http"
 import { BehaviorSubject, type Observable, of, forkJoin } from "rxjs"
 import { map, tap, catchError } from "rxjs/operators"
 
@@ -39,7 +39,7 @@ export type Notification = AcademicNotification | MessageNotification
   providedIn: "root",
 })
 export class NotificationService {
-  private apiUrl = "http://localhost:5000/api/notifications"
+  private apiUrl = "http://localhost:5001/api/notifications"
 
   // BehaviorSubjects pour les deux types de notifications
   private academicNotificationsSubject = new BehaviorSubject<AcademicNotification[]>([])
@@ -262,6 +262,68 @@ export class NotificationService {
         return of({ success: true })
       }),
     )
+  }
+
+  /**
+   * Notifie un enseignant qu'un étudiant a soumis un quiz
+   * @param notification Les informations de notification
+   */
+  notifyTeacherAboutQuizSubmission(notification: {
+    enseignantId: string;
+    etudiantId: string;
+    etudiantName: string;
+    quizId: string;
+    quizTitle: string;
+    score: number;
+    dateCompletion: Date;
+  }): Observable<any> {
+    console.log(`NotificationService.notifyTeacherAboutQuizSubmission - Notification à l'enseignant ${notification.enseignantId}`);
+    
+    // Créer une notification académique de type soumission
+    const notificationData: Partial<AcademicNotification> = {
+      type: "soumission",
+      title: `Quiz soumis: ${notification.quizTitle}`,
+      message: `L'étudiant ${notification.etudiantName} a soumis le quiz "${notification.quizTitle}" avec un score de ${notification.score}%.`,
+      date: new Date(),
+      read: false,
+      contenuId: notification.quizId,
+      linkedId: notification.quizId,
+      etudiantId: notification.etudiantId,
+      enseignantId: notification.enseignantId
+    };
+    
+    return this.http.post<any>(`${this.apiUrl}/academic`, notificationData).pipe(
+      tap(response => {
+        console.log("Notification à l'enseignant envoyée:", response);
+        
+        // Si l'enseignant est actuellement connecté, mettre à jour ses notifications
+        if (response) {
+          const currentNotifications = this.academicNotificationsSubject.value;
+          const newNotification = this.transformAcademicNotifications([response])[0];
+          this.academicNotificationsSubject.next([newNotification, ...currentNotifications]);
+          this.updateUnreadAcademicCount([newNotification, ...currentNotifications]);
+        }
+      }),
+      catchError(error => {
+        console.error("Erreur lors de l'envoi de la notification à l'enseignant:", error);
+        
+        // En cas d'erreur, créer une notification locale pour les tests
+        const mockNotification: AcademicNotification = {
+          id: `soumission-${Date.now()}`,
+          type: "soumission",
+          title: `Quiz soumis: ${notification.quizTitle}`,
+          message: `L'étudiant ${notification.etudiantName} a soumis le quiz "${notification.quizTitle}" avec un score de ${notification.score}%.`,
+          date: new Date(),
+          read: false,
+          contenuId: notification.quizId,
+          linkedId: notification.quizId,
+          etudiantId: notification.etudiantId,
+          enseignantId: notification.enseignantId
+        };
+        
+        return of(mockNotification);
+      })
+    );
   }
 
   // Générer des notifications académiques simulées pour les tests

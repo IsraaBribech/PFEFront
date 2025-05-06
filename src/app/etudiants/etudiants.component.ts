@@ -1,15 +1,11 @@
-import { NgModule } from '@angular/core';
-import { BrowserModule } from '@angular/platform-browser';
-import { ReactiveFormsModule } from '@angular/forms';
 import { Component, type OnInit } from "@angular/core"
-import {  FormBuilder, type FormGroup, Validators } from "@angular/forms"
+import { FormBuilder, type FormGroup, Validators } from "@angular/forms"
 import  { UserService } from "../user.service"
 import  { MatSnackBar } from "@angular/material/snack-bar"
 import  { SpecialitesService } from "../specialites.service"
 import  { DepartementsService } from "../departements.service"
 import  { NiveauxService } from "../niveaux.service"
 import  { StatsService } from "../stats.service"
-import  { GroupeService, Filiere } from "../groupe.service"
 import { forkJoin } from "rxjs"
 import { trigger, transition, style, animate } from "@angular/animations"
 
@@ -55,24 +51,16 @@ export class EtudiantsComponent implements OnInit {
   specialties: any[] = []
   niveaux: any[] = []
   filteredSpecialties: any[] = []
-  filteredNiveaux: any[] = [] // Ajout de cette propriété pour stocker les niveaux filtrés
   availableSubGroups: string[] = [] // Pour les sous-groupes générés dynamiquement
-
-  // Nouvelles propriétés pour les filières et groupes
-  filieres: Filiere[] = []
-  filteredFilieres: Filiere[] = []
-  filteredGroups: any[] = []
 
   // Indicateurs de chargement
   loadingEtudiants = false
   loadingSpecialites = false
   loadingDepartments = false
   loadingNiveaux = false
-  loadingFilieres = false
   submitting = false
   showPassword = false
-  filteredSpecialites: any;
-  etudiantForm: any;
+filteredGroups: any
 
   constructor(
     private fb: FormBuilder,
@@ -81,8 +69,7 @@ export class EtudiantsComponent implements OnInit {
     private specialitesService: SpecialitesService,
     private departementsService: DepartementsService,
     private niveauxService: NiveauxService,
-    private statsService: StatsService,
-    private groupeService: GroupeService, // Ajout du service de groupes
+    private statsService: StatsService
   ) {
     // Initialisation du formulaire utilisateur
     this.userForm = this.initForms()
@@ -98,78 +85,26 @@ export class EtudiantsComponent implements OnInit {
         this.loadSpecialtiesForDepartment(departmentId)
         // Enable specialty field when department is selected
         this.userForm.get("specialty")?.enable()
-        
-        // Charger les niveaux pour ce département
-        this.loadNiveauxForDepartment(departmentId)
-
-        // Réinitialiser les champs dépendants
-        this.userForm.get("specialty")?.setValue("")
-        this.userForm.get("level")?.setValue("")
-        this.userForm.get("filiere")?.setValue("")
-        this.userForm.get("group")?.setValue("")
-        this.userForm.get("subGroup")?.setValue("")
-
-        // Vider les listes filtrées
-        this.filteredFilieres = []
-        this.filteredGroups = []
       } else {
         this.filteredSpecialties = []
-        this.filteredNiveaux = []
         // Disable specialty field when no department is selected
         this.userForm.get("specialty")?.disable()
-        this.userForm.get("level")?.disable()
       }
     })
 
-    // Ajouter un écouteur pour le changement de spécialité
-    this.userForm.get("specialty")?.valueChanges.subscribe((specialtyId) => {
-      if (specialtyId) {
-        const departmentId = this.userForm.get("department")?.value
-        const levelId = this.userForm.get("level")?.value
-
-        if (departmentId && levelId) {
-          this.loadFilieresForSpecialty(specialtyId, departmentId, levelId)
-          this.userForm.get("filiere")?.enable()
-        }
-
-        // Réinitialiser les champs dépendants
-        this.userForm.get("filiere")?.setValue("")
-        this.userForm.get("group")?.setValue("")
-        this.userForm.get("subGroup")?.setValue("")
-
-        // Vider les listes filtrées
-        this.filteredGroups = []
-      } else {
-        this.filteredFilieres = []
-        this.userForm.get("filiere")?.disable()
+    // Replace or add this listener for group changes
+  this.userForm.get("group")?.valueChanges.subscribe((groupId) => {
+    if (groupId) {
+      this.availableSubGroups = []
+      for (let i = 1; i <= 5; i++) {
+        this.availableSubGroups.push(`${groupId}.${i}`)
       }
-    })
-
-    // Ajouter un écouteur pour le changement de filière
-    this.userForm.get("filiere")?.valueChanges.subscribe((filiereId) => {
-      if (filiereId) {
-        this.loadGroupesForFiliere(filiereId)
-        this.userForm.get("group")?.enable()
-
-        // Réinitialiser les champs dépendants
-        this.userForm.get("group")?.setValue("")
-        this.userForm.get("subGroup")?.setValue("")
-      } else {
-        this.filteredGroups = []
-        this.userForm.get("group")?.disable()
-      }
-    })
-
-    // Écouteur pour le changement de groupe
-    this.userForm.get("group")?.valueChanges.subscribe((groupId) => {
-      if (groupId) {
-        this.generateSubGroups(groupId)
-        this.userForm.get("subGroup")?.enable()
-      } else {
-        this.availableSubGroups = []
-        this.userForm.get("subGroup")?.disable()
-      }
-    })
+      this.userForm.get("subGroup")?.enable()
+    } else {
+      this.availableSubGroups = []
+      this.userForm.get("subGroup")?.disable()
+    }
+  })
 
     // Ajouter ces lignes dans la méthode ngOnInit() juste après la souscription existante pour department
     this.userForm.get("firstName")?.valueChanges.subscribe(() => {
@@ -179,63 +114,6 @@ export class EtudiantsComponent implements OnInit {
     this.userForm.get("lastName")?.valueChanges.subscribe(() => {
       this.updateFullName()
     })
-
-    // Écouteur pour le changement de niveau
-    this.userForm.get("level")?.valueChanges.subscribe((levelId) => {
-      if (levelId) {
-        const departmentId = this.userForm.get("department")?.value
-        const specialtyId = this.userForm.get("specialty")?.value
-
-        if (departmentId && specialtyId) {
-          this.loadFilieresForSpecialty(specialtyId, departmentId, levelId)
-        }
-
-        // Réinitialiser les champs dépendants
-        this.userForm.get("filiere")?.setValue("")
-        this.userForm.get("group")?.setValue("")
-        this.userForm.get("subGroup")?.setValue("")
-      }
-    })
-  }
-
-  // Méthode pour charger les niveaux en fonction du département sélectionné
-  loadNiveauxForDepartment(departmentId: string): void {
-    console.log(`Chargement des niveaux pour le département: ${departmentId}`);
-    
-    if (!departmentId) {
-      this.filteredNiveaux = [];
-      return;
-    }
-    
-    this.loadingNiveaux = true;
-    
-    this.niveauxService.getNiveauxByDepartement(departmentId).subscribe({
-      next: (data) => {
-        this.filteredNiveaux = data;
-        console.log(`Niveaux filtrés pour le département ${departmentId}:`, this.filteredNiveaux);
-        this.loadingNiveaux = false;
-        
-        // Si aucun niveau n'est trouvé, afficher un message
-        if (this.filteredNiveaux.length === 0) {
-          console.warn(`Aucun niveau trouvé pour le département ${departmentId}`);
-          this.showNotification("Aucun niveau disponible pour ce département", false);
-        }
-        
-        // Activer le champ niveau si des niveaux sont disponibles
-        if (this.filteredNiveaux.length > 0) {
-          this.userForm.get("level")?.enable();
-        } else {
-          this.userForm.get("level")?.disable();
-        }
-      },
-      error: (error) => {
-        console.error(`Erreur lors du chargement des niveaux pour le département ${departmentId}:`, error);
-        this.filteredNiveaux = [];
-        this.loadingNiveaux = false;
-        this.userForm.get("level")?.disable();
-        this.showNotification("Erreur lors du chargement des niveaux", true);
-      }
-    });
   }
 
   // Ajouter cette nouvelle méthode après ngOnInit()
@@ -273,9 +151,8 @@ export class EtudiantsComponent implements OnInit {
       // Informations académiques
       department: ["", [Validators.required]],
       specialty: [{ value: "", disabled: true }, [Validators.required]], // Disabled by default until department is selected
-      level: [{ value: "", disabled: true }, [Validators.required]], // Disabled by default until department is selected
-      filiere: [{ value: "", disabled: true }, [Validators.required]], // Disabled by default until specialty is selected
-      group: [{ value: "", disabled: true }, [Validators.required]], // Disabled by default until filiere is selected
+      level: ["", [Validators.required]],
+      group: ["", [Validators.required]],
       subGroup: [{ value: "", disabled: true }, [Validators.required]], // Disabled by default until group is selected
 
       // Informations supplémentaires
@@ -300,7 +177,6 @@ export class EtudiantsComponent implements OnInit {
     this.loadingDepartments = true
     this.loadingSpecialites = true
     this.loadingNiveaux = true
-    this.loadingFilieres = true
 
     // Utiliser forkJoin pour charger toutes les données en parallèle
     forkJoin({
@@ -308,7 +184,6 @@ export class EtudiantsComponent implements OnInit {
       departments: this.departementsService.getDepartements(),
       specialties: this.specialitesService.getSpecialites(),
       niveaux: this.niveauxService.getNiveaux(),
-      filieres: this.groupeService.getGroupes(), // Ajout du chargement des filières
     }).subscribe({
       next: (results) => {
         // Traiter les résultats
@@ -316,16 +191,12 @@ export class EtudiantsComponent implements OnInit {
         this.departments = results.departments
         this.specialties = results.specialties
         this.niveaux = results.niveaux
-        this.filieres = results.filieres // Stocker les filières
-
-        console.log("Filières chargées:", this.filieres)
 
         // Mettre à jour les indicateurs de chargement
         this.loadingEtudiants = false
         this.loadingDepartments = false
         this.loadingSpecialites = false
         this.loadingNiveaux = false
-        this.loadingFilieres = false
       },
       error: (error: any) => {
         console.error("Erreur lors du chargement des données initiales:", error)
@@ -336,7 +207,6 @@ export class EtudiantsComponent implements OnInit {
         this.loadingDepartments = false
         this.loadingSpecialites = false
         this.loadingNiveaux = false
-        this.loadingFilieres = false
       },
     })
   }
@@ -405,120 +275,63 @@ export class EtudiantsComponent implements OnInit {
 
   // Méthodes pour le filtrage des étudiants
   onDepartmentChange(): void {
-    const departmentId = this.selectedDepartment
+    const departmentId = this.userForm.get("department")?.value || this.selectedDepartment
 
     if (departmentId) {
-      // Charger les spécialités pour ce département
       this.loadSpecialtiesForDepartment(departmentId)
-      
-      // Charger les niveaux pour ce département
-      this.loadNiveauxForDepartment(departmentId)
-      
-      // Réinitialiser les sélections dépendantes
+      // Réinitialiser la spécialité sélectionnée quand le département change
       this.selectedSpecialty = ""
-      this.selectedLevel = ""
       this.selectedGroup = ""
       this.selectedSubGroup = ""
+      this.userForm.get("specialty")?.enable()
     } else {
-      // Réinitialiser les listes filtrées si aucun département n'est sélectionné
       this.filteredSpecialties = []
-      this.filteredNiveaux = []
-      this.loadNiveaux() // Recharger tous les niveaux si aucun département n'est sélectionné
-    }
-    
-    // Appliquer les filtres après le changement
-    this.applyFilters()
-  }
-
-  // Méthode pour charger les filières en fonction de la spécialité, du département et du niveau
-  loadFilieresForSpecialty(specialtyId: string, departmentId: string, levelId: string): void {
-    console.log(
-      "Chargement des filières pour la spécialité:",
-      specialtyId,
-      "département:",
-      departmentId,
-      "niveau:",
-      levelId,
-    )
-
-    if (!specialtyId || !departmentId || !levelId) {
-      this.filteredFilieres = []
-      return
-    }
-
-    // Filtrer les filières localement en fonction des critères
-    this.filteredFilieres = this.filieres.filter(
-      (filiere) =>
-        filiere.specialite === specialtyId && filiere.departement === departmentId && filiere.niveau === levelId,
-    )
-
-    console.log("Filières filtrées:", this.filteredFilieres)
-
-    if (this.filteredFilieres.length === 0) {
-      this.showNotification("Aucune filière trouvée pour cette spécialité, ce département et ce niveau", false)
-    }
-  }
-
-  // Méthode pour charger les groupes d'une filière
-  loadGroupesForFiliere(filiereId: string): void {
-    console.log("Chargement des groupes pour la filière:", filiereId)
-
-    if (!filiereId) {
-      this.filteredGroups = []
-      return
-    }
-
-    // Trouver la filière sélectionnée
-    const selectedFiliere = this.filieres.find((f) => f._id === filiereId)
-
-    if (selectedFiliere && selectedFiliere.groupes) {
-      // Transformer les groupes pour l'affichage dans le select
-      this.filteredGroups = selectedFiliere.groupes.map((groupe) => ({
-        _id: groupe._id,
-        name: groupe.nom || `Groupe ${groupe.code}`,
-        code: groupe.code,
-      }))
-
-      console.log("Groupes filtrés:", this.filteredGroups)
-    } else {
-      console.warn("Aucun groupe trouvé pour la filière:", filiereId)
-      this.filteredGroups = []
-    }
-  }
-
-  // Modify the onGroupChange method
-  onGroupChange(): void {
-    const groupId = this.selectedGroup
-
-    if (groupId) {
-      // Generate subgroups based on the selected group
-      this.availableSubGroups = []
-      for (let i = 1; i <= 5; i++) {
-        this.availableSubGroups.push(`${groupId}.${i}`)
-      }
-      this.selectedSubGroup = ""
-    } else {
-      this.availableSubGroups = []
+      this.userForm.get("specialty")?.disable()
+      this.userForm.get("group")?.disable()
+      this.userForm.get("subGroup")?.disable()
     }
     this.applyFilters()
   }
+
+// Modify the onGroupChange method
+onGroupChange(): void {
+  const groupId = this.selectedGroup
+
+  if (groupId) {
+    // Generate subgroups based on the selected group
+    this.availableSubGroups = []
+    for (let i = 1; i <= 5; i++) {
+      this.availableSubGroups.push(`${groupId}.${i}`)
+    }
+    this.selectedSubGroup = ""
+  } else {
+    this.availableSubGroups = []
+  }
+  this.applyFilters()
+}
+
+// Update the method that handles group selection in the form
+// Add this to your component if it doesn't exist already
+onFormGroupChange(): void {
+  const groupId = this.userForm.get('group')?.value
+  
+  if (groupId) {
+    this.availableSubGroups = []
+    for (let i = 1; i <= 5; i++) {
+      this.availableSubGroups.push(`${groupId}.${i}`)
+    }
+    this.userForm.get('subGroup')?.enable()
+  } else {
+    this.availableSubGroups = []
+    this.userForm.get('subGroup')?.disable()
+  }
+}
 
   // Méthode pour gérer le changement de spécialité dans les filtres
   onSpecialtyChange(): void {
     const specialtyId = this.selectedSpecialty
 
     if (specialtyId) {
-      this.selectedGroup = ""
-      this.selectedSubGroup = ""
-    }
-    this.applyFilters()
-  }
-
-  // Méthode pour gérer le changement de niveau dans les filtres
-  onLevelChange(): void {
-    const levelId = this.selectedLevel
-    
-    if (levelId) {
       this.selectedGroup = ""
       this.selectedSubGroup = ""
     }
@@ -588,7 +401,6 @@ export class EtudiantsComponent implements OnInit {
     this.selectedSubGroup = ""
     this.searchTerm = ""
     this.filteredSpecialties = []
-    this.filteredNiveaux = []
     this.availableSubGroups = []
     this.filteredEtudiants = [...this.etudiants]
     this.showNotification("Filtres réinitialisés", false)
@@ -687,28 +499,12 @@ export class EtudiantsComponent implements OnInit {
     const departmentId = etudiant.departmentId
     const specialtyId = etudiant.specialtyId
     const levelId = etudiant.levelId
-    const filiereId = etudiant.filiereId
     const groupId = etudiant.groupId
     const subGroupId = etudiant.subGroupId
 
     // Charger les spécialités pour ce département
     if (departmentId) {
       this.loadSpecialtiesForDepartment(departmentId)
-    }
-
-    // Charger les niveaux pour ce département
-    if (departmentId) {
-      this.loadNiveauxForDepartment(departmentId)
-    }
-
-    // Charger les filières pour cette spécialité
-    if (departmentId && levelId && specialtyId) {
-      this.loadFilieresForSpecialty(specialtyId, departmentId, levelId)
-    }
-
-    // Charger les groupes pour cette filière
-    if (filiereId) {
-      this.loadGroupesForFiliere(filiereId)
     }
 
     // Générer les sous-groupes pour ce groupe
@@ -730,7 +526,6 @@ export class EtudiantsComponent implements OnInit {
       department: departmentId,
       specialty: specialtyId,
       level: levelId,
-      filiere: filiereId,
       group: groupId,
       subGroup: subGroupId,
       couleur: etudiant.couleur,
@@ -748,22 +543,8 @@ export class EtudiantsComponent implements OnInit {
     // Enable fields if values are selected
     if (departmentId) {
       this.userForm.get("specialty")?.enable()
-      this.userForm.get("level")?.enable()
     } else {
       this.userForm.get("specialty")?.disable()
-      this.userForm.get("level")?.disable()
-    }
-
-    if (specialtyId) {
-      this.userForm.get("filiere")?.enable()
-    } else {
-      this.userForm.get("filiere")?.disable()
-    }
-
-    if (filiereId) {
-      this.userForm.get("group")?.enable()
-    } else {
-      this.userForm.get("group")?.disable()
     }
 
     if (groupId) {
@@ -818,10 +599,7 @@ export class EtudiantsComponent implements OnInit {
     if (!this.niveaux.length) {
       this.loadNiveaux()
     }
-    if (!this.filieres.length) {
-      this.loadFilieres()
-    }
-
+ 
     this.activeModal = type
 
     // Modifier la méthode showModal() pour initialiser correctement le nom complet
@@ -843,9 +621,6 @@ export class EtudiantsComponent implements OnInit {
 
       // Disable fields initially
       this.userForm.get("specialty")?.disable()
-      this.userForm.get("level")?.disable()
-      this.userForm.get("filiere")?.disable()
-      this.userForm.get("group")?.disable()
       this.userForm.get("subGroup")?.disable()
     } else {
       // En mode édition, s'assurer que le nom complet est correctement défini
@@ -952,30 +727,6 @@ export class EtudiantsComponent implements OnInit {
     })
   }
 
-  // Méthode pour charger les filières
-  loadFilieres(): void {
-    this.loadingFilieres = true
-    console.log("Début du chargement des filières")
-
-    this.groupeService.getGroupes().subscribe({
-      next: (data: any) => {
-        console.log("Filières chargées:", data)
-        this.filieres = data
-        this.loadingFilieres = false
-      },
-      error: (error: any) => {
-        console.error("Erreur détaillée lors du chargement des filières:", error)
-        if (error.error) console.error("Corps de l'erreur:", error.error)
-        if (error.status) {
-          console.error("Code d'état HTTP:", error.status)
-        }
-
-        this.showNotification("Erreur lors du chargement des filières. Veuillez réessayer.", true)
-        this.loadingFilieres = false
-      },
-    })
-  }
-
   // Méthode pour soumettre le formulaire utilisateur
   submitForm(type: string): void {
     if (this.submitting) {
@@ -1015,7 +766,6 @@ export class EtudiantsComponent implements OnInit {
           department: formValues.department,
           specialty: formValues.specialty,
           level: formValues.level,
-          filiere: formValues.filiere,
           group: formValues.group,
           subGroup: formValues.subGroup,
           matricule: formValues.matricule || "",

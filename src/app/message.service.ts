@@ -33,7 +33,7 @@ export interface Matiere {
   providedIn: "root",
 })
 export class MessageService {
-  private apiUrl = "http://localhost:5000/api"
+  private apiUrl = "http://localhost:5001/api"
 
   constructor(private http: HttpClient) {}
 

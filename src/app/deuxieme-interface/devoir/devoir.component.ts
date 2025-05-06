@@ -1,12 +1,13 @@
 import { Component, type OnInit, ViewChild, type ElementRef } from "@angular/core"
-import {  FormBuilder, type FormGroup, Validators } from "@angular/forms"
-import  { DevoirService } from "../../devoir.service"
-import  { SoumissionsService } from "../../soumissions.service" // Importer le service de soumissions
-import  { CoursService } from "../../cours.service"
-import  { DepartementsService } from "../../departements.service"
-import  { NiveauxService } from "../../niveaux.service"
-import  { SpecialitesService } from "../../specialites.service"
-import  { MatSnackBar } from "@angular/material/snack-bar"
+import { FormBuilder, type FormGroup, Validators } from "@angular/forms"
+import { DevoirService } from "../../devoir.service"
+import { SoumissionsService } from "../../soumissions.service" 
+import { CoursService } from "../../cours.service"
+import { DepartementsService } from "../../departements.service"
+import { NiveauxService } from "../../niveaux.service"
+import { SpecialitesService } from "../../specialites.service"
+import { MatSnackBar } from "@angular/material/snack-bar"
+import { forkJoin } from "rxjs"
 
 @Component({
   selector: "app-devoir",
@@ -91,7 +92,7 @@ export class DevoirComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private devoirService: DevoirService,
-    private soumissionsService: SoumissionsService, // Injecter le service de soumissions
+    private soumissionsService: SoumissionsService,
     private coursService: CoursService,
     private departementsService: DepartementsService,
     private niveauxService: NiveauxService,
@@ -150,62 +151,45 @@ export class DevoirComponent implements OnInit {
   loadAllData(): void {
     this.isLoading = true
 
-    // Charger les départements
-    this.departementsService.getDepartements().subscribe({
-      next: (data) => {
-        this.departements = data
-        console.log("Départements chargés:", this.departements)
+    // Utiliser forkJoin pour charger toutes les données en parallèle
+    forkJoin({
+      departements: this.departementsService.getDepartements(),
+      niveaux: this.niveauxService.getNiveaux(),
+      specialites: this.specialitesService.getSpecialites(),
+      cours: this.coursService.getAllCours()
+    }).subscribe({
+      next: (results) => {
+        // Traiter les départements
+        this.departements = results.departements;
+        console.log("Départements chargés:", this.departements);
+
+        // Traiter les niveaux
+        this.niveaux = results.niveaux;
+        console.log("Niveaux chargés:", this.niveaux);
+
+        // Traiter les spécialités
+        this.specialites = results.specialites;
+        this.filteredSpecialites = [...this.specialites];
+        this.formFilteredSpecialites = [...this.specialites];
+        console.log("Spécialités chargées:", this.specialites);
+
+        // Traiter les cours
+        this.cours = results.cours;
+        this.filteredCours = [...this.cours];
+        console.log("Cours chargés:", this.cours);
+
+        // Charger les devoirs après avoir chargé les données de référence
+        this.loadDevoirs();
+        
+        // Charger les statistiques des devoirs
+        this.loadDevoirsStats();
       },
       error: (error) => {
-        console.error("Erreur lors du chargement des départements:", error)
-        this.showNotification("Erreur lors du chargement des départements")
-      },
-    })
-
-    // Charger les niveaux
-    this.niveauxService.getNiveaux().subscribe({
-      next: (data) => {
-        this.niveaux = data
-        console.log("Niveaux chargés:", this.niveaux)
-      },
-      error: (error) => {
-        console.error("Erreur lors du chargement des niveaux:", error)
-        this.showNotification("Erreur lors du chargement des niveaux")
-      },
-    })
-
-    // Charger les spécialités
-    this.specialitesService.getSpecialites().subscribe({
-      next: (data) => {
-        this.specialites = data
-        this.filteredSpecialites = [...this.specialites]
-        this.formFilteredSpecialites = [...this.specialites]
-        console.log("Spécialités chargées:", this.specialites)
-      },
-      error: (error) => {
-        console.error("Erreur lors du chargement des spécialités:", error)
-        this.showNotification("Erreur lors du chargement des spécialités")
-      },
-    })
-
-    // Charger les cours
-    this.coursService.getAllCours().subscribe({
-      next: (data) => {
-        this.cours = data
-        this.filteredCours = [...this.cours]
-        console.log("Cours chargés:", this.cours)
-      },
-      error: (error) => {
-        console.error("Erreur lors du chargement des cours:", error)
-        this.showNotification("Erreur lors du chargement des cours")
-      },
-    })
-
-    // Charger les devoirs
-    this.loadDevoirs()
-
-    // Charger les statistiques des devoirs
-    this.loadDevoirsStats()
+        console.error("Erreur lors du chargement des données:", error);
+        this.showNotification("Erreur lors du chargement des données");
+        this.isLoading = false;
+      }
+    });
   }
 
   loadDevoirs(): void {
@@ -242,7 +226,7 @@ export class DevoirComponent implements OnInit {
     })
   }
 
-  // Nouvelle méthode pour charger les soumissions pour tous les devoirs
+  // Méthode pour charger les soumissions pour tous les devoirs
   loadAllSubmissions(): void {
     console.log("Chargement des soumissions pour tous les devoirs...")
 
@@ -258,21 +242,81 @@ export class DevoirComponent implements OnInit {
             const soumissions = response.data
             console.log(`${soumissions.length} soumissions trouvées pour le devoir ${devoir.title}:`, soumissions)
 
-            // Mettre à jour le devoir avec ses soumissions
-            devoir.submissions = soumissions
-            devoir.submissionsCount = soumissions.length
+            // Vérifier si des soumissions existent réellement
+            if (soumissions.length === 0) {
+              // Aucune soumission, initialiser avec un tableau vide
+              devoir.submissions = []
+              devoir.submissionsCount = 0
+              console.log(`Aucune soumission pour le devoir ${devoir.title}`)
+            } else {
+              // Vérifier et corriger les données de chaque soumission
+              soumissions.forEach((soumission: any) => {
+                // S'assurer que le nom de l'étudiant est présent
+                if (!soumission.etudiantName && soumission.etudiant) {
+                  if (typeof soumission.etudiant === 'object' && soumission.etudiant.name) {
+                    soumission.etudiantName = soumission.etudiant.name;
+                  } else if (typeof soumission.etudiant === 'string') {
+                    // Essayer de trouver l'étudiant dans la liste des étudiants
+                    const etudiant = this.etudiants.find(e => e._id === soumission.etudiant);
+                    if (etudiant) {
+                      soumission.etudiantName = etudiant.name;
+                    } else {
+                      soumission.etudiantName = `Étudiant #${soumission.etudiant.substring(0, 5)}`;
+                    }
+                  }
+                }
 
-            // Mettre à jour le compteur global de soumissions
-            this.submissionsCount += soumissions.length
+                // S'assurer que la date de soumission est correcte
+                if (!soumission.dateSoumission) {
+                  if (soumission.dateCreation) {
+                    soumission.dateSoumission = new Date(soumission.dateCreation);
+                  } else if (soumission.createdAt) {
+                    soumission.dateSoumission = new Date(soumission.createdAt);
+                  } else {
+                    soumission.dateSoumission = new Date();
+                  }
+                } else if (typeof soumission.dateSoumission === 'string') {
+                  soumission.dateSoumission = new Date(soumission.dateSoumission);
+                }
+
+                // S'assurer que les informations du fichier sont correctes
+                if (soumission.fichier) {
+                  if (typeof soumission.fichier === 'string') {
+                    const nomFichier = soumission.fichier.split('/').pop() || 'fichier.pdf';
+                    soumission.fichier = {
+                      nom: nomFichier,
+                      chemin: soumission.fichier,
+                      type: nomFichier.endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream',
+                      taille: 0
+                    };
+                  } else if (!soumission.fichier.nom && soumission.fichier.chemin) {
+                    soumission.fichier.nom = soumission.fichier.chemin.split('/').pop() || 'fichier.pdf';
+                  }
+                }
+              });
+
+              // Mettre à jour le devoir avec ses soumissions
+              devoir.submissions = soumissions
+              devoir.submissionsCount = soumissions.length
+
+              // Mettre à jour le compteur global de soumissions
+              this.submissionsCount += soumissions.length
+            }
 
             // Mettre à jour les devoirs filtrés
             this.filterDevoirs()
           } else {
             console.warn(`Format de réponse inattendu pour le devoir ${devoir.title}:`, response)
+            // Initialiser avec un tableau vide en cas de réponse inattendue
+            devoir.submissions = []
+            devoir.submissionsCount = 0
           }
         },
         error: (error) => {
           console.error(`Erreur lors du chargement des soumissions pour le devoir ${devoir._id}:`, error)
+          // Initialiser avec un tableau vide en cas d'erreur
+          devoir.submissions = []
+          devoir.submissionsCount = 0
         },
       })
     })
@@ -671,12 +715,64 @@ export class DevoirComponent implements OnInit {
               console.log(`Réponse des soumissions pour ${devoir.title}:`, submissionsResponse)
 
               if (submissionsResponse && submissionsResponse.data) {
-                this.selectedDevoir.submissions = submissionsResponse.data
-                this.filteredSubmissions = this.selectedDevoir.submissions
-                console.log(
-                  `${this.selectedDevoir.submissions.length} soumissions chargées:`,
-                  this.selectedDevoir.submissions,
-                )
+                // Vérifier si des soumissions existent réellement
+                if (submissionsResponse.data.length === 0) {
+                  console.log("Aucune soumission trouvée pour ce devoir")
+                  this.selectedDevoir.submissions = []
+                  this.filteredSubmissions = []
+                } else {
+                  // Traiter et normaliser les données de soumission
+                  const soumissions = submissionsResponse.data.map((soumission: any) => {
+                    // S'assurer que le nom de l'étudiant est présent
+                    if (!soumission.etudiantName && soumission.etudiant) {
+                      if (typeof soumission.etudiant === 'object' && soumission.etudiant.name) {
+                        soumission.etudiantName = soumission.etudiant.name;
+                      } else if (typeof soumission.etudiant === 'string') {
+                        // Essayer de trouver l'étudiant dans la liste des étudiants
+                        const etudiant = this.etudiants.find(e => e._id === soumission.etudiant);
+                        if (etudiant) {
+                          soumission.etudiantName = etudiant.name;
+                        } else {
+                          soumission.etudiantName = `Étudiant #${soumission.etudiant.substring(0, 5)}`;
+                        }
+                      }
+                    }
+
+                    // S'assurer que la date de soumission est correcte
+                    if (!soumission.dateSoumission) {
+                      if (soumission.dateCreation) {
+                        soumission.dateSoumission = new Date(soumission.dateCreation);
+                      } else if (soumission.createdAt) {
+                        soumission.dateSoumission = new Date(soumission.createdAt);
+                      } else {
+                        soumission.dateSoumission = new Date();
+                      }
+                    } else if (typeof soumission.dateSoumission === 'string') {
+                      soumission.dateSoumission = new Date(soumission.dateSoumission);
+                    }
+
+                    // S'assurer que les informations du fichier sont correctes
+                    if (soumission.fichier) {
+                      if (typeof soumission.fichier === 'string') {
+                        const nomFichier = soumission.fichier.split('/').pop() || 'fichier.pdf';
+                        soumission.fichier = {
+                          nom: nomFichier,
+                          chemin: soumission.fichier,
+                          type: nomFichier.endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream',
+                          taille: 0
+                        };
+                      } else if (!soumission.fichier.nom && soumission.fichier.chemin) {
+                        soumission.fichier.nom = soumission.fichier.chemin.split('/').pop() || 'fichier.pdf';
+                      }
+                    }
+
+                    return soumission;
+                  });
+
+                  this.selectedDevoir.submissions = soumissions;
+                  this.filteredSubmissions = soumissions;
+                  console.log(`${soumissions.length} soumissions chargées:`, soumissions);
+                }
               } else {
                 console.warn("Format de réponse inattendu pour les soumissions:", submissionsResponse)
                 this.selectedDevoir.submissions = []
@@ -784,19 +880,91 @@ export class DevoirComponent implements OnInit {
 
   downloadDevoirFile(devoir: any): void {
     if (devoir.fichier && devoir.fichier.chemin) {
-      // Créer un lien pour télécharger le fichier
-      const fileUrl = `http://localhost:5000${devoir.fichier.chemin.replace(/^\//, "")}`
-      window.open(fileUrl, "_blank")
-      this.showNotification("Téléchargement du fichier en cours...")
+      this.devoirService.telechargerFichierConsigne(devoir._id).subscribe({
+        next: (blob) => {
+          // Créer un URL pour le blob
+          const url = window.URL.createObjectURL(blob);
+          
+          // Déterminer le nom du fichier
+          let fileName = "consigne.pdf";
+          if (devoir.fichier.nom) {
+            fileName = devoir.fichier.nom;
+          } else if (devoir.fichier.chemin) {
+            const pathParts = devoir.fichier.chemin.split('/');
+            fileName = pathParts[pathParts.length - 1];
+          }
+          
+          // Créer un élément <a> pour déclencher le téléchargement
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          
+          // Nettoyer
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          
+          this.showNotification("Téléchargement du fichier terminé");
+        },
+        error: (error) => {
+          console.error("Erreur lors du téléchargement du fichier:", error);
+          this.showNotification("Erreur lors du téléchargement du fichier");
+          
+          // Fallback: essayer d'ouvrir directement l'URL du fichier
+          if (devoir.fichier && devoir.fichier.chemin) {
+            const fileUrl = `http://localhost:5001${devoir.fichier.chemin.replace(/^\//, "")}`;
+            window.open(fileUrl, "_blank");
+          }
+        }
+      });
+    } else {
+      this.showNotification("Aucun fichier disponible pour ce devoir");
     }
   }
 
   downloadSubmission(submission: any): void {
-    if (submission.fichier) {
-      // Utiliser l'URL de téléchargement du service
-      const fileUrl = this.soumissionsService.getSoumissionFileUrl(submission._id)
-      window.open(fileUrl, "_blank")
-      this.showNotification("Téléchargement du fichier en cours...")
+    if (submission && submission._id) {
+      this.soumissionsService.telechargerFichierSoumission(submission._id).subscribe({
+        next: (blob) => {
+          // Créer un URL pour le blob
+          const url = window.URL.createObjectURL(blob);
+          
+          // Déterminer le nom du fichier
+          let fileName = "soumission.pdf";
+          if (submission.fichier) {
+            if (typeof submission.fichier === 'object' && submission.fichier.nom) {
+              fileName = submission.fichier.nom;
+            } else if (typeof submission.fichier === 'string') {
+              const pathParts = submission.fichier.split('/');
+              fileName = pathParts[pathParts.length - 1];
+            }
+          }
+          
+          // Créer un élément <a> pour déclencher le téléchargement
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          
+          // Nettoyer
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          
+          this.showNotification("Téléchargement du fichier terminé");
+        },
+        error: (error) => {
+          console.error("Erreur lors du téléchargement du fichier:", error);
+          this.showNotification("Erreur lors du téléchargement du fichier");
+          
+          // Fallback: essayer d'ouvrir directement l'URL du fichier
+          const fileUrl = this.soumissionsService.getSoumissionFileUrl(submission._id);
+          window.open(fileUrl, "_blank");
+        }
+      });
+    } else {
+      this.showNotification("Aucun fichier disponible pour cette soumission");
     }
   }
 
@@ -863,6 +1031,25 @@ export class DevoirComponent implements OnInit {
       return "À venir"
     }
     return "Inconnu"
+  }
+
+  // Formater la date pour l'affichage
+  formatDate(date: Date): string {
+    if (!date) return "Date inconnue";
+    
+    // Vérifier si la date est valide
+    if (isNaN(date.getTime())) {
+      return "Date invalide";
+    }
+    
+    // Formater la date au format DD/MM/YYYY HH:MM
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
   }
 
   showNotification(message: string, action = "Fermer", duration = 3000): void {

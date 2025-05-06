@@ -34,6 +34,8 @@ interface Quiz {
   dateCompletion?: Date
   questions: Question[]
   type: "cours" | "td" | "tp" // Type de cours: Cours, TD ou TP
+  enseignantId?: string // ID de l'enseignant
+  enseignantNom?: string // Nom de l'enseignant
 }
 
 interface Matiere {
@@ -57,6 +59,7 @@ export class QuizRepondComponent implements OnInit, OnDestroy {
   etudiantName = "Chargement..."
   etudiantEmail = "Chargement..."
   etudiantMatricule = "Chargement..."
+  etudiantGroupe = "Chargement..."
   etudiantId = ""
 
   // Informations académiques
@@ -201,6 +204,198 @@ export class QuizRepondComponent implements OnInit, OnDestroy {
     this.stopTimer()
   }
 
+  // Méthode pour charger les quiz créés par les enseignants
+  loadTeacherQuizzes(): void {
+    // Utiliser la méthode spécifique pour les étudiants au lieu de getQuizzes
+    this.quizService.getQuizzesForStudents().subscribe({
+      next: (quizzes) => {
+        console.log("Quiz des enseignants récupérés pour les étudiants:", quizzes)
+        this.teacherQuizzes = quizzes
+
+        // Convertir les quiz des enseignants au format étudiant
+        this.convertTeacherQuizzes()
+
+        // Filtrer les quiz après chargement
+        this.filterQuizzes()
+      },
+      error: (error: any) => {
+        console.error("Erreur lors du chargement des quiz des enseignants:", error)
+
+        // En cas d'erreur, charger des quiz de démonstration
+        this.initializeDemoQuizzes()
+        this.filterQuizzes()
+      },
+    })
+  }
+
+  // Méthode pour convertir les quiz des enseignants au format étudiant
+  convertTeacherQuizzes(): void {
+    // Réinitialiser les listes
+    this.quizzesSemestre1 = []
+    this.quizzesSemestre2 = []
+
+    // Parcourir les quiz des enseignants et les convertir
+    this.teacherQuizzes.forEach((teacherQuiz) => {
+      // Déterminer à quel semestre appartient le quiz
+      // (logique simplifiée: quiz avant juillet = semestre 1, après = semestre 2)
+      const semester =
+        teacherQuiz.createdAt && new Date(teacherQuiz.createdAt).getMonth() < 6 ? "semestre1" : "semestre2"
+
+      // Convertir le quiz
+      const quiz: Quiz = {
+        id: teacherQuiz._id || `quiz-${Date.now()}`,
+        titre: teacherQuiz.title,
+        description: teacherQuiz.description || "",
+        matiere: teacherQuiz.subject || "Non spécifié",
+        dateCreation: teacherQuiz.createdAt ? new Date(teacherQuiz.createdAt) : new Date(),
+        dateLimite: teacherQuiz.dueDate
+          ? new Date(teacherQuiz.dueDate)
+          : new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000),
+        duree: teacherQuiz.duration || 30,
+        fichierConsigne: "",
+        estTermine: false,
+        type: this.mapQuizType(teacherQuiz.type || ""),
+        questions: this.convertQuestions(teacherQuiz),
+        enseignantId:
+          typeof teacherQuiz.teacher === "object" ? (teacherQuiz.teacher as any)._id : teacherQuiz.teacher || "",
+        enseignantNom:
+          teacherQuiz.teacherName ||
+          this.getEnseignantByType(teacherQuiz.subject || "", this.mapQuizType(teacherQuiz.type || "")),
+      }
+
+      // Ajouter le quiz au semestre approprié
+      if (semester === "semestre1") {
+        this.quizzesSemestre1.push(quiz)
+      } else {
+        this.quizzesSemestre2.push(quiz)
+      }
+    })
+
+    console.log("Quiz convertis - Semestre 1:", this.quizzesSemestre1.length)
+    console.log("Quiz convertis - Semestre 2:", this.quizzesSemestre2.length)
+  }
+
+  // Méthode pour charger les informations de l'étudiant
+  loadStudentInfo(): void {
+    const studentInfo = this.authService.getStudentInfo()
+
+    if (studentInfo) {
+      this.updateStudentInfo(studentInfo)
+    } else {
+      console.warn("Aucune information d'étudiant disponible")
+    }
+  }
+
+  // Mettre à jour les informations de l'étudiant dans le composant
+  updateStudentInfo(info: StudentInfo): void {
+    this.etudiantName = info.name || "Nom non disponible"
+    this.etudiantEmail = info.email || "Email non disponible"
+    this.etudiantMatricule = info.matricule || "Matricule non disponible"
+    this.etudiantGroupe = info.groupName || info.group || "Groupe non disponible"
+    this.etudiantId = info._id || ""
+
+    // Utiliser les noms mappés au lieu des IDs
+    this.departement = info.departmentName || "Département non disponible"
+    this.specialite = info.specialtyName || "Spécialité non disponible"
+    this.niveau = info.levelName || "Niveau non disponible"
+
+    // Utiliser le nom formaté du groupe s'il est disponible, sinon utiliser l'ID du groupe
+    this.groupe = info.groupName || info.group || "Groupe non disponible"
+
+    console.log("Informations étudiant mises à jour dans l'interface quiz:", {
+      nom: this.etudiantName,
+      email: this.etudiantEmail,
+      matricule: this.etudiantMatricule,
+      groupe: this.etudiantGroupe,
+      departement: this.departement,
+      specialite: this.specialite,
+      niveau: this.niveau,
+    })
+
+    // Charger les notifications après avoir récupéré l'ID de l'étudiant
+    if (this.etudiantId) {
+      this.loadNotifications()
+    }
+  }
+
+  // Soumettre le quiz
+  soumettreQuiz(): void {
+    this.isSubmitting = true
+
+    if (!this.selectedQuiz || !this.etudiantId) {
+      this.isSubmitting = false
+      this.confirmationMessage = "Erreur: Informations manquantes pour la soumission"
+      return
+    }
+
+    // Préparer les données de réponses pour l'API
+    const reponses = this.selectedQuiz.questions.map((q) => ({
+      questionId: q.id,
+      reponse: q.reponseUtilisateur,
+      type: q.type,
+    }))
+
+    // Ajouter l'ID de l'enseignant aux données de soumission
+    const enseignantId = this.selectedQuiz.enseignantId || ""
+
+    // Utiliser le service de soumissions pour envoyer les données
+    this.soumissionsService
+      .soumettreQuiz(
+        this.etudiantId,
+        this.etudiantName,
+        this.selectedQuiz.id,
+        reponses,
+        this.selectedQuiz.score || 0,
+        enseignantId, // ID de l'enseignant
+        this.etudiantEmail, // Email de l'étudiant
+        this.etudiantMatricule, // Matricule de l'étudiant
+        this.etudiantGroupe, // Groupe de l'étudiant
+      )
+      .subscribe({
+        next: (response) => {
+          console.log("Soumission du quiz réussie:", response)
+
+          // Mettre à jour l'état du quiz
+          if (this.selectedQuiz) {
+            this.selectedQuiz.estTermine = true
+            this.selectedQuiz.dateCompletion = new Date()
+          }
+
+          // Mettre à jour les quiz filtrés
+          this.filterQuizzes()
+
+          // Afficher un message de confirmation
+          this.confirmationMessage = "Votre quiz a été soumis avec succès !"
+          this.isSubmitting = false
+
+          // Envoyer une notification à l'enseignant
+          this.notifierEnseignant(enseignantId)
+        },
+        error: (error: any) => {
+          console.error("Erreur lors de la soumission du quiz:", error)
+          this.confirmationMessage = `Erreur: ${error.message || "Une erreur est survenue lors de la soumission"}`
+          this.isSubmitting = false
+        },
+      })
+  }
+
+  // Obtenir l'enseignant selon le type de cours
+  getEnseignantByType(matiereName: string, type: "cours" | "td" | "tp"): string {
+    // Vérifier d'abord si le quiz a un nom d'enseignant spécifique
+    if (this.selectedQuiz && this.selectedQuiz.enseignantNom) {
+      return this.selectedQuiz.enseignantNom
+    }
+
+    const matieres = [...this.matieresSemestre1, ...this.matieresSemestre2]
+    const matiere = matieres.find((m) => m.nom === matiereName)
+
+    if (matiere && matiere.enseignants) {
+      return matiere.enseignants[type]
+    }
+
+    return "Enseignant inconnu"
+  }
+
   // Méthode pour s'abonner aux notifications
   subscribeToNotifications(): void {
     // S'abonner aux notifications académiques
@@ -238,29 +433,6 @@ export class QuizRepondComponent implements OnInit, OnDestroy {
     this.notificationSubscriptions.push(academicSub, messageSub, unreadAcademicSub, unreadMessageSub)
   }
 
-  // Méthode pour charger les quiz créés par les enseignants
-  loadTeacherQuizzes(): void {
-    this.quizService.getQuizzes().subscribe({
-      next: (quizzes) => {
-        console.log("Quiz des enseignants récupérés:", quizzes)
-        this.teacherQuizzes = quizzes
-
-        // Convertir les quiz des enseignants au format étudiant
-        this.convertTeacherQuizzes()
-
-        // Filtrer les quiz après chargement
-        this.filterQuizzes()
-      },
-      error: (error: any) => {
-        console.error("Erreur lors du chargement des quiz des enseignants:", error)
-
-        // En cas d'erreur, charger des quiz de démonstration
-        this.initializeDemoQuizzes()
-        this.filterQuizzes()
-      },
-    })
-  }
-
   // Méthode pour charger les notifications
   loadNotifications(): void {
     // Récupérer l'ID de l'utilisateur connecté
@@ -282,50 +454,6 @@ export class QuizRepondComponent implements OnInit, OnDestroy {
     this.notificationSubscriptions.push(sub)
   }
 
-  // Initialiser des notifications de démonstration
-  initializeDemoNotifications(): void {
-    // Cette méthode n'est plus nécessaire car le service de notification
-    // génère déjà des données de démonstration en cas d'erreur
-    console.log("Utilisation des notifications de démonstration du service")
-  }
-
-  // Méthode pour convertir les quiz des enseignants au format étudiant
-  convertTeacherQuizzes(): void {
-    // Réinitialiser les listes
-    this.quizzesSemestre1 = []
-    this.quizzesSemestre2 = []
-
-    // Parcourir les quiz des enseignants et les convertir
-    this.teacherQuizzes.forEach((teacherQuiz) => {
-      // Déterminer à quel semestre appartient le quiz
-      // (logique simplifiée: quiz avant juillet = semestre 1, après = semestre 2)
-      const semester =
-        teacherQuiz.createdAt && new Date(teacherQuiz.createdAt).getMonth() < 6 ? "semestre1" : "semestre2"
-
-      // Convertir le quiz
-      const quiz: Quiz = {
-        id: teacherQuiz._id || `quiz-${Date.now()}`,
-        titre: teacherQuiz.title,
-        description: teacherQuiz.description || "",
-        matiere: teacherQuiz.subject || "Non spécifié",
-        dateCreation: teacherQuiz.createdAt || new Date(),
-        dateLimite: teacherQuiz.dueDate || new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000),
-        duree: teacherQuiz.duration || 30,
-        fichierConsigne: "",
-        estTermine: false,
-        type: this.mapQuizType(teacherQuiz.type || ""),
-        questions: this.convertQuestions(teacherQuiz),
-      }
-
-      // Ajouter le quiz au semestre approprié
-      if (semester === "semestre1") {
-        this.quizzesSemestre1.push(quiz)
-      } else {
-        this.quizzesSemestre2.push(quiz)
-      }
-    })
-  }
-
   // Convertir les questions du format enseignant au format étudiant
   convertQuestions(teacherQuiz: TeacherQuiz): Question[] {
     const questions: Question[] = []
@@ -337,7 +465,7 @@ export class QuizRepondComponent implements OnInit, OnDestroy {
           id: questionId,
           texte: q.text,
           type: this.mapQuestionType(q.type),
-          points: q.points,
+          points: q.points || 1,
         }
 
         if (q.options && q.options.length > 0) {
@@ -373,6 +501,9 @@ export class QuizRepondComponent implements OnInit, OnDestroy {
       Cours: "cours",
       TD: "td",
       TP: "tp",
+      cours: "cours",
+      td: "td",
+      tp: "tp",
     }
     return typeMap[teacherType] || "cours"
   }
@@ -383,50 +514,11 @@ export class QuizRepondComponent implements OnInit, OnDestroy {
       single: "choix_unique",
       multiple: "choix_multiple",
       text: "texte",
+      choix_unique: "choix_unique",
+      choix_multiple: "choix_multiple",
+      texte: "texte",
     }
     return typeMap[teacherType] || "choix_unique"
-  }
-
-  // Méthode pour charger les informations de l'étudiant
-  loadStudentInfo(): void {
-    const studentInfo = this.authService.getStudentInfo()
-
-    if (studentInfo) {
-      this.updateStudentInfo(studentInfo)
-    } else {
-      console.warn("Aucune information d'étudiant disponible")
-    }
-  }
-
-  // Mettre à jour les informations de l'étudiant dans le composant
-  updateStudentInfo(info: StudentInfo): void {
-    this.etudiantName = info.name || "Nom non disponible"
-    this.etudiantEmail = info.email || "Email non disponible"
-    this.etudiantMatricule = info.matricule || "Matricule non disponible"
-    this.etudiantId = info._id || ""
-
-    // Utiliser les noms mappés au lieu des IDs
-    this.departement = info.departmentName || "Département non disponible"
-    this.specialite = info.specialtyName || "Spécialité non disponible"
-    this.niveau = info.levelName || "Niveau non disponible"
-
-    // Utiliser le nom formaté du groupe s'il est disponible, sinon utiliser l'ID du groupe
-    this.groupe = info.groupName || info.group || "Groupe non disponible"
-
-    console.log("Informations étudiant mises à jour dans l'interface quiz:", {
-      nom: this.etudiantName,
-      email: this.etudiantEmail,
-      matricule: this.etudiantMatricule,
-      departement: this.departement,
-      specialite: this.specialite,
-      niveau: this.niveau,
-      groupe: this.groupe,
-    })
-
-    // Charger les notifications après avoir récupéré l'ID de l'étudiant
-    if (this.etudiantId) {
-      this.loadNotifications()
-    }
   }
 
   // Écouteur d'événement pour fermer le dropdown quand on clique ailleurs
@@ -685,6 +777,7 @@ export class QuizRepondComponent implements OnInit, OnDestroy {
           `assets/quiz/${this.slugify(matiere.nom)}/cours/quiz.pdf`,
           false,
           "cours",
+          "teacher-1", // ID de l'enseignant fictif
         ),
       )
 
@@ -701,6 +794,7 @@ export class QuizRepondComponent implements OnInit, OnDestroy {
           `assets/quiz/${this.slugify(matiere.nom)}/td/quiz.pdf`,
           Math.random() > 0.7, // Aléatoirement terminé ou non
           "td",
+          "teacher-2", // ID de l'enseignant fictif
         ),
       )
 
@@ -717,6 +811,7 @@ export class QuizRepondComponent implements OnInit, OnDestroy {
           `assets/quiz/${this.slugify(matiere.nom)}/tp/quiz.pdf`,
           false,
           "tp",
+          "teacher-3", // ID de l'enseignant fictif
         ),
       )
     })
@@ -737,6 +832,7 @@ export class QuizRepondComponent implements OnInit, OnDestroy {
           `assets/quiz/${this.slugify(matiere.nom)}/cours/quiz.pdf`,
           false,
           "cours",
+          "teacher-1", // ID de l'enseignant fictif
         ),
       )
 
@@ -753,6 +849,7 @@ export class QuizRepondComponent implements OnInit, OnDestroy {
           `assets/quiz/${this.slugify(matiere.nom)}/td/quiz.pdf`,
           false,
           "td",
+          "teacher-2", // ID de l'enseignant fictif
         ),
       )
 
@@ -769,6 +866,7 @@ export class QuizRepondComponent implements OnInit, OnDestroy {
           `assets/quiz/${this.slugify(matiere.nom)}/tp/quiz.pdf`,
           false,
           "tp",
+          "teacher-3", // ID de l'enseignant fictif
         ),
       )
     })
@@ -786,6 +884,7 @@ export class QuizRepondComponent implements OnInit, OnDestroy {
     fichierConsigne: string,
     estTermine: boolean,
     type: "cours" | "td" | "tp",
+    enseignantId: string, // Ajout de l'ID de l'enseignant
   ): Quiz {
     const quiz: Quiz = {
       id,
@@ -798,7 +897,9 @@ export class QuizRepondComponent implements OnInit, OnDestroy {
       fichierConsigne,
       estTermine,
       type,
+      enseignantId, // Stocker l'ID de l'enseignant
       questions: [],
+      enseignantNom: "",
     }
 
     // Ajouter des questions au quiz
@@ -980,18 +1081,6 @@ export class QuizRepondComponent implements OnInit, OnDestroy {
     return Array.from(matieres).sort()
   }
 
-  // Obtenir l'enseignant selon le type de cours
-  getEnseignantByType(matiereName: string, type: "cours" | "td" | "tp"): string {
-    const matieres = [...this.matieresSemestre1, ...this.matieresSemestre2]
-    const matiere = matieres.find((m) => m.nom === matiereName)
-
-    if (matiere && matiere.enseignants) {
-      return matiere.enseignants[type]
-    }
-
-    return "Enseignant inconnu"
-  }
-
   // Obtenir l'initiale de l'enseignant
   getEnseignantInitial(quiz: Quiz): string {
     const enseignant = this.getEnseignantByType(quiz.matiere, quiz.type)
@@ -1161,49 +1250,32 @@ export class QuizRepondComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Soumettre le quiz
-  soumettreQuiz(): void {
-    this.isSubmitting = true
-
-    if (!this.selectedQuiz || !this.etudiantId) {
-      this.isSubmitting = false
-      this.confirmationMessage = "Erreur: Informations manquantes pour la soumission"
+  // Nouvelle méthode pour notifier l'enseignant
+  notifierEnseignant(enseignantId: string): void {
+    if (!enseignantId || !this.selectedQuiz) {
+      console.warn("Impossible de notifier l'enseignant: ID manquant")
       return
     }
 
-    // Préparer les données de réponses pour l'API
-    const reponses = this.selectedQuiz.questions.map((q) => ({
-      questionId: q.id,
-      reponse: q.reponseUtilisateur,
-      type: q.type,
-    }))
+    const notification = {
+      enseignantId: enseignantId,
+      etudiantId: this.etudiantId,
+      etudiantName: this.etudiantName,
+      quizId: this.selectedQuiz.id,
+      quizTitle: this.selectedQuiz.titre,
+      score: this.selectedQuiz.score || 0,
+      dateCompletion: new Date(),
+    }
 
-    // Utiliser le service de soumissions pour envoyer les données
-    this.soumissionsService
-      .soumettreQuiz(this.etudiantId, this.etudiantName, this.selectedQuiz.id, reponses, this.selectedQuiz.score || 0)
-      .subscribe({
-        next: (response) => {
-          console.log("Soumission du quiz réussie:", response)
-
-          // Mettre à jour l'état du quiz
-          if (this.selectedQuiz) {
-            this.selectedQuiz.estTermine = true
-            this.selectedQuiz.dateCompletion = new Date()
-          }
-
-          // Mettre à jour les quiz filtrés
-          this.filterQuizzes()
-
-          // Afficher un message de confirmation
-          this.confirmationMessage = "Votre quiz a été soumis avec succès !"
-          this.isSubmitting = false
-        },
-        error: (error: any) => {
-          console.error("Erreur lors de la soumission du quiz:", error)
-          this.confirmationMessage = `Erreur: ${error.message || "Une erreur est survenue lors de la soumission"}`
-          this.isSubmitting = false
-        },
-      })
+    // Utiliser le service de notification pour envoyer une notification à l'enseignant
+    this.notificationService.notifyTeacherAboutQuizSubmission(notification).subscribe({
+      next: (response) => {
+        console.log("Notification envoyée à l'enseignant:", response)
+      },
+      error: (error) => {
+        console.error("Erreur lors de l'envoi de la notification à l'enseignant:", error)
+      },
+    })
   }
 
   // Gérer les réponses à choix unique
@@ -1366,6 +1438,7 @@ export class QuizRepondComponent implements OnInit, OnDestroy {
       `assets/quiz/${this.slugify(matiere.nom)}/${type}/quiz-ia.pdf`,
       false,
       type,
+      "teacher-ia", // ID de l'enseignant IA
     )
 
     // Ajouter le quiz à la liste correspondante

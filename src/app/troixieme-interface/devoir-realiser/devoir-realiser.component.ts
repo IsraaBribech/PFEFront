@@ -1,13 +1,13 @@
 import { Component, type OnInit, type OnDestroy, HostListener } from "@angular/core"
-import  { Router } from "@angular/router"
-import  { HttpClient } from "@angular/common/http"
-import  { DevoirService } from "../../devoir.service"
-import  { SoumissionsService } from "../../soumissions.service"
-import  { CoursService, Cours } from "../../cours.service"
-import  { EnseignantService } from "../../enseignant.service"
-import  { AuthService, StudentInfo } from "../../auth.service"
-import  { NotificationService, AcademicNotification, MessageNotification } from "../../notification.service"
-import  { Subscription } from "rxjs"
+import { Router } from "@angular/router"
+import { HttpClient } from "@angular/common/http"
+import { DevoirService } from "../../devoir.service"
+import { SoumissionsService } from "../../soumissions.service"
+import { CoursService, Cours } from "../../cours.service"
+import { EnseignantService } from "../../enseignant.service"
+import { AuthService, StudentInfo } from "../../auth.service"
+import { NotificationService, AcademicNotification, MessageNotification } from "../../notification.service"
+import { Subscription } from "rxjs"
 
 interface Devoir {
   id: string
@@ -26,27 +26,6 @@ interface Devoir {
   couleur: string
   icon: string
   type: "cours" | "td" | "tp"
-}
-
-interface Matiere {
-  nom: string
-  couleur: string
-  icon: string
-  enseignants: {
-    cours: string
-    td: string
-    tp: string
-  }
-}
-
-// Définir l'interface Enseignant
-interface Enseignant {
-  _id: string
-  nom: string
-  prenom: string
-  email: string
-  departement: string
-  grade: string
 }
 
 @Component({
@@ -105,8 +84,8 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
   private unreadMessageCountSubscription: Subscription | null = null
 
   // Matières
-  matieresSemestre1: Matiere[] = []
-  matieresSemestre2: Matiere[] = []
+  matieresSemestre1: any[] = []
+  matieresSemestre2: any[] = []
 
   // Devoirs
   devoirsSemestre1: Devoir[] = []
@@ -119,7 +98,7 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
   errorMessage = ""
 
   // Ajouter cette propriété pour stocker les enseignants
-  enseignants: Enseignant[] = []
+  enseignants: any[] = []
 
   constructor(
     private router: Router,
@@ -129,20 +108,18 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     private enseignantService: EnseignantService,
     private http: HttpClient,
     private authService: AuthService,
-    private notificationService: NotificationService, // Ajouter le service de notification
+    private notificationService: NotificationService,
   ) {}
 
-  // Modifier la méthode ngOnInit pour charger également les enseignants
   ngOnInit(): void {
     this.loadStudentInfo() // Charger les informations de l'étudiant
     this.loadCours()
-    this.loadEnseignants() // Ajouter cette ligne
+    this.loadEnseignants()
     this.loadDevoirs()
-    this.loadRealNotifications() // Remplacer loadNotifications par loadRealNotifications
-    this.loadSoumissions() // Ajouter cette ligne pour charger les soumissions
+    this.loadRealNotifications()
+    this.loadSoumissions() // Charger les soumissions existantes
   }
 
-  // Ajouter la méthode ngOnDestroy pour se désabonner
   ngOnDestroy(): void {
     // Se désabonner de tous les observables
     if (this.academicNotificationsSubscription) {
@@ -159,7 +136,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Remplacer la méthode loadStudentInfo() par cette version corrigée
   loadStudentInfo(): void {
     console.log("Chargement des informations de l'étudiant...")
 
@@ -179,17 +155,15 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Remplacer la méthode updateStudentInfo() par cette version corrigée
   updateStudentInfo(): void {
     if (this.studentInfo) {
       // Mettre à jour les informations de base
-      // Utiliser name au lieu de prenom/nom
       this.etudiantName = this.studentInfo.name || "Nom non disponible"
       this.etudiantEmail = this.studentInfo.email || "Email non disponible"
       this.etudiantMatricule = this.studentInfo.matricule || "Matricule non disponible"
       this.etudiantId = this.studentInfo._id || "67c4c2f07fe25e5361a1e1bf" // ID par défaut si non disponible
 
-      // Mettre à jour les informations académiques en utilisant les noms de propriétés corrects
+      // Mettre à jour les informations académiques
       this.departement = this.studentInfo.department || ""
       this.specialite = this.studentInfo.specialty || ""
       this.niveau = this.studentInfo.level || ""
@@ -208,7 +182,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Modifier cette méthode pour utiliser le service de soumissions
   loadSoumissions(): void {
     if (!this.etudiantId) {
       console.warn("ID étudiant non disponible, impossible de charger les soumissions")
@@ -235,7 +208,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     })
   }
 
-  // Ajouter cette méthode pour mettre à jour les devoirs avec les informations de soumission
   updateDevoirsWithSoumissions(soumissions: any[]): void {
     console.log("Mise à jour des devoirs avec les informations de soumission...")
 
@@ -287,7 +259,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     this.filterDevoirs()
   }
 
-  // Modifier la méthode loadEnseignants pour ajouter plus de logs et de gestion d'erreurs
   loadEnseignants(): void {
     console.log("Début du chargement des enseignants...")
 
@@ -325,7 +296,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     })
   }
 
-  // Ajouter cette méthode pour créer des enseignants de test
   getDefaultEnseignants(): any[] {
     return [
       { _id: "1", nom: "Dupont", prenom: "Jean", email: "jean.dupont@univ.fr", departement: "1", grade: "Professeur" },
@@ -364,7 +334,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     ]
   }
 
-  // Améliorer la méthode updateDevoirsWithEnseignantNames pour ajouter des logs
   updateDevoirsWithEnseignantNames(): void {
     console.log("Mise à jour des noms d'enseignants dans les devoirs...")
 
@@ -402,7 +371,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     this.filterDevoirs()
   }
 
-  // Méthode pour charger les cours depuis le service
   loadCours(): void {
     this.isLoading = true
     this.coursService.getCours().subscribe({
@@ -420,7 +388,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     })
   }
 
-  // Méthode pour initialiser les matières à partir des cours
   initializeMatieresFromCours(): void {
     // Réinitialiser les matières
     this.matieresSemestre1 = []
@@ -477,7 +444,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Modifier la méthode processDevoirs pour mieux gérer les IDs d'enseignants
   processDevoirs(devoirs: any[]): void {
     // Réinitialiser les tableaux de devoirs
     this.devoirsSemestre1 = []
@@ -504,7 +470,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
       }
 
       // Récupérer l'ID de l'enseignant
-      // Ajouter des logs pour voir ce que contient réellement le devoir
       console.log(`Devoir ID ${devoir._id || devoir.id} - Données enseignant:`, {
         enseignantId: devoir.enseignantId,
         enseignant: devoir.enseignant,
@@ -559,7 +524,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Méthode pour charger les devoirs depuis le service
   loadDevoirs(): void {
     this.devoirService.getDevoirs().subscribe({
       next: (response) => {
@@ -581,7 +545,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     })
   }
 
-  // Méthode pour déterminer le type de devoir
   determineType(devoir: any): "cours" | "td" | "tp" {
     if (devoir.type) {
       if (devoir.type.toLowerCase().includes("td")) return "td"
@@ -593,7 +556,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     return "cours"
   }
 
-  // Remplacer la méthode getEnseignantName par cette version améliorée
   getEnseignantName(enseignantId: string): string {
     if (!enseignantId) return "Non spécifié"
 
@@ -624,17 +586,15 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     return `Enseignant ${enseignantId}`
   }
 
-  // Méthode pour obtenir l'URL du fichier de consigne
   getFichierUrl(devoir: any): string {
     if (devoir.fichier && devoir.fichier.chemin) {
-      return `http://localhost:5000${devoir.fichier.chemin}`
+      return `http://localhost:5001${devoir.fichier.chemin}`
     }
 
     // URL par défaut si aucun fichier n'est spécifié
     return `assets/devoirs/default/consigne.pdf`
   }
 
-  // Modifier la méthode getMatiereColor pour utiliser le nom de la matière au lieu de l'ID du cours
   getMatiereColor(matiereName: string): string {
     if (!matiereName) return "#6366f1" // Couleur par défaut
 
@@ -650,7 +610,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     return this.getRandomColor(matiereName)
   }
 
-  // Modifier la méthode getMatiereIcon pour utiliser le nom de la matière au lieu de l'ID du cours
   getMatiereIcon(matiereName: string): string {
     if (!matiereName) return "fa-book" // Icône par défaut
 
@@ -682,7 +641,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Méthode pour générer une couleur aléatoire cohérente basée sur le nom de la matière
   getRandomColor(matiereName: string): string {
     let hash = 0
     for (let i = 0; i < matiereName.length; i++) {
@@ -693,7 +651,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     return `hsl(${hue}, 70%, 60%)`
   }
 
-  // Écouteur d'événement pour fermer le dropdown quand on clique ailleurs
   @HostListener("document:click", ["$event"])
   onDocumentClick(event: MouseEvent): void {
     // Vérifier si le clic est en dehors du dropdown
@@ -703,7 +660,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Remplacer la méthode loadNotifications par loadRealNotifications
   loadRealNotifications(): void {
     if (!this.etudiantId) {
       console.warn("ID étudiant non disponible, impossible de charger les notifications")
@@ -750,17 +706,14 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     })
   }
 
-  // Ajouter la méthode pour définir l'onglet actif
   setActiveNotificationTab(tab: "academic" | "message"): void {
     this.activeNotificationTab = tab
   }
 
-  // Remplacer la méthode getUnreadNotificationsCount
   getUnreadNotificationsCount(): number {
     return this.unreadAcademicCount + this.unreadMessageCount
   }
 
-  // Ajouter la méthode pour marquer une notification académique comme lue
   markAcademicNotificationAsRead(notification: AcademicNotification): void {
     this.notificationService.markAcademicNotificationAsRead(notification.id).subscribe({
       next: () => {
@@ -773,7 +726,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     })
   }
 
-  // Ajouter la méthode pour marquer une notification de message comme lue
   markMessageNotificationAsRead(notification: MessageNotification): void {
     this.notificationService.markMessageNotificationAsRead(notification.id).subscribe({
       next: () => {
@@ -786,7 +738,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     })
   }
 
-  // Ajouter la méthode pour marquer toutes les notifications comme lues
   markAllNotificationsAsRead(): void {
     if (!this.etudiantId) return
 
@@ -805,7 +756,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Ajouter la méthode pour naviguer vers la destination d'une notification académique
   navigateToDestination(notification: AcademicNotification): void {
     this.closeNotificationDropdown()
 
@@ -835,7 +785,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Ajouter la méthode pour naviguer vers le forum pour une notification de message
   navigateToForum(notification: MessageNotification): void {
     this.closeNotificationDropdown()
     this.router.navigate(["/troixieme-interface/message-envoyer"], {
@@ -846,13 +795,11 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     })
   }
 
-  // Conserver la méthode navigateToNotifications existante
   navigateToNotifications(): void {
     this.router.navigate(["/troixieme-interface/notification"])
     this.closeNotificationDropdown()
   }
 
-  // Méthode pour afficher/masquer le dropdown de notifications
   toggleNotificationDropdown(event?: MouseEvent): void {
     if (event) {
       event.stopPropagation()
@@ -860,12 +807,10 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     this.showNotificationDropdown = !this.showNotificationDropdown
   }
 
-  // Méthode pour fermer le dropdown si on clique ailleurs
   closeNotificationDropdown(): void {
     this.showNotificationDropdown = false
   }
 
-  // Méthode pour obtenir l'icône en fonction du type de notification
   getNotificationIcon(type: string): string {
     switch (type) {
       case "cours":
@@ -883,7 +828,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Méthode pour formater le temps écoulé
   formatTimeAgo(date: Date): string {
     const now = new Date()
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
@@ -910,8 +854,7 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     return this.formatDate(date)
   }
 
-  // Méthodes pour les matières par défaut (utilisées si l'API ne renvoie pas de données)
-  getDefaultMatieresSemestre1(): Matiere[] {
+  getDefaultMatieresSemestre1(): any[] {
     return [
       {
         nom: "Programmation Web",
@@ -946,7 +889,7 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     ]
   }
 
-  getDefaultMatieresSemestre2(): Matiere[] {
+  getDefaultMatieresSemestre2(): any[] {
     return [
       {
         nom: "Frameworks JavaScript",
@@ -981,7 +924,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     ]
   }
 
-  // Initialiser les devoirs à partir des données par défaut
   initializeDevoirs(): void {
     // Générer les devoirs pour le semestre 1
     this.devoirsSemestre1 = []
@@ -1092,7 +1034,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     })
   }
 
-  // Convertir un nom en slug pour les chemins de fichiers
   slugify(text: string): string {
     return text
       .toLowerCase()
@@ -1103,13 +1044,11 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
       .replace(/-+$/, "")
   }
 
-  // Changer de semestre
   changeSemester(semester: "semestre1" | "semestre2"): void {
     this.activeSemester = semester
     this.filterDevoirs()
   }
 
-  // Filtrer les devoirs
   filterDevoirs(): void {
     let devoirs = this.activeSemester === "semestre1" ? this.devoirsSemestre1 : this.devoirsSemestre2
 
@@ -1141,7 +1080,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     this.filteredDevoirs = devoirs
   }
 
-  // Trier les devoirs
   sortTable(column: string): void {
     if (this.sortColumn === column) {
       this.sortDirection = this.sortDirection === "asc" ? "desc" : "asc"
@@ -1152,7 +1090,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     this.filterDevoirs()
   }
 
-  // Obtenir l'icône de tri
   getSortIcon(column: string): string {
     if (this.sortColumn !== column) {
       return "fa-sort"
@@ -1160,7 +1097,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     return this.sortDirection === "asc" ? "fa-sort-up" : "fa-sort-down"
   }
 
-  // Trier les devoirs
   sortDevoirs(devoirs: Devoir[]): Devoir[] {
     return devoirs.sort((a, b) => {
       let comparison = 0
@@ -1189,7 +1125,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     })
   }
 
-  // Obtenir les matières uniques pour le semestre actif
   getUniqueMatieresForSemester(): string[] {
     const devoirs = this.activeSemester === "semestre1" ? this.devoirsSemestre1 : this.devoirsSemestre2
     const matieres = new Set<string>()
@@ -1197,7 +1132,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     return Array.from(matieres).sort()
   }
 
-  // Ouvrir le modal de soumission
   openSoumissionModal(devoir: Devoir): void {
     this.selectedDevoir = devoir
     this.fichierAEnvoyer = null
@@ -1206,7 +1140,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     this.showSoumissionModal = true
   }
 
-  // Fermer le modal de soumission
   closeSoumissionModal(event: Event): void {
     if (
       event.target === event.currentTarget ||
@@ -1221,7 +1154,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Gérer le fichier sélectionné
   onFileSelected(event: Event): void {
     const target = event.target as HTMLInputElement
     if (target && target.files && target.files.length > 0) {
@@ -1238,7 +1170,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Soumettre un devoir
   soumettreDevoir(): void {
     if (!this.fichierAEnvoyer || !this.selectedDevoir) {
       alert("Veuillez sélectionner un fichier à soumettre.")
@@ -1252,6 +1183,9 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     console.log("Soumission de devoir:", {
       etudiantId: this.etudiantId,
       etudiantName: this.etudiantName,
+      etudiantEmail: this.etudiantEmail,
+      etudiantMatricule: this.etudiantMatricule,
+      etudiantGroupe: this.groupe,
       devoirId: this.selectedDevoir.id,
       fichier: this.fichierAEnvoyer.name,
       commentaire: this.commentaire,
@@ -1281,6 +1215,9 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
         this.selectedDevoir.id,
         this.fichierAEnvoyer,
         this.commentaire,
+        this.etudiantEmail,
+        this.etudiantMatricule,
+        this.groupe
       )
       .subscribe({
         next: (response) => {
@@ -1315,7 +1252,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
       })
   }
 
-  // Mettre à jour un devoir dans la liste
   updateDevoirInList(devoir: Devoir): void {
     // Mettre à jour dans la liste du semestre 1
     const index1 = this.devoirsSemestre1.findIndex((d) => d.id === devoir.id)
@@ -1330,7 +1266,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Formater les dates
   formatDate(date: Date): string {
     return date.toLocaleDateString("fr-FR", {
       day: "2-digit",
@@ -1339,13 +1274,11 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     })
   }
 
-  // Vérifier si un devoir est en retard
   isLate(devoir: Devoir): boolean {
     const today = new Date()
     return !devoir.soumis && today > devoir.dateLimite
   }
 
-  // Vérifier si un devoir est proche de la date limite
   isCloseToDeadline(devoir: Devoir): boolean {
     const today = new Date()
     const diffTime = devoir.dateLimite.getTime() - today.getTime()
@@ -1353,14 +1286,12 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     return !devoir.soumis && diffDays <= 3 && diffDays > 0
   }
 
-  // Obtenir le nombre de jours restants
   getJoursRestants(dateLimite: Date): number {
     const today = new Date()
     const diffTime = dateLimite.getTime() - today.getTime()
     return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
   }
 
-  // Obtenir la classe CSS pour une ligne de tableau
   getRowClass(devoir: Devoir): string {
     if (devoir.soumis) {
       return "row-soumis"
@@ -1372,7 +1303,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     return ""
   }
 
-  // Obtenir le libellé pour un type de cours
   getTypeLabel(type: string): string {
     switch (type) {
       case "cours":
@@ -1386,7 +1316,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Méthode pour télécharger un fichier
   telechargerFichier(devoir: Devoir): void {
     console.log(`Téléchargement du fichier pour le devoir: ${devoir.id} - ${devoir.titre}`)
 
@@ -1443,7 +1372,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     })
   }
 
-  // Méthode pour extraire le nom du fichier à partir d'une URL
   extraireNomFichier(url: string): string {
     if (!url) return ""
 
@@ -1459,7 +1387,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     return filename
   }
 
-  // Méthode de secours pour télécharger directement depuis l'URL
   telechargerFichierDirectement(url: string, devoirId: string): void {
     console.log(`Tentative de téléchargement direct depuis: ${url}`)
 
@@ -1473,7 +1400,6 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
     document.body.removeChild(a)
   }
 
-  // Méthode pour se déconnecter
   logout(): void {
     console.log("Déconnexion en cours...")
     this.authService.logout()

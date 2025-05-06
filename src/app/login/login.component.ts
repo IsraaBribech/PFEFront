@@ -1,7 +1,8 @@
-import { Component, type OnInit, type AfterViewInit,  ElementRef, Renderer2 } from "@angular/core"
-import {  FormBuilder, type FormGroup, Validators } from "@angular/forms"
-import  { Router } from "@angular/router"
+import { Component, type OnInit, type AfterViewInit, ElementRef, Renderer2 } from "@angular/core"
+import { FormBuilder, type FormGroup, Validators } from "@angular/forms"
+import { Router } from "@angular/router"
 import { AuthService } from "../auth.service"
+import { UserService } from "../user.service" // Importer UserService directement
 
 @Component({
   selector: "app-login",
@@ -20,6 +21,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
     private el: ElementRef,
     private renderer: Renderer2,
     private authService: AuthService,
+    private userService: UserService, // Injecter UserService directement
   ) {}
 
   ngOnInit(): void {
@@ -28,7 +30,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    // Démarrer la vidéo après le rendu du composant
+    // Démarrer la lecture vidéo après le rendu du composant
     setTimeout(() => {
       this.startVideoPlayback()
     }, 100)
@@ -42,12 +44,12 @@ export class LoginComponent implements OnInit, AfterViewInit {
     })
   }
 
-  // Méthode améliorée pour démarrer la lecture de la vidéo automatiquement
+  // Méthode améliorée pour démarrer la lecture vidéo automatiquement
   private startVideoPlayback(): void {
     const videoElement = this.el.nativeElement.querySelector("#loginVideo") as HTMLVideoElement
 
     if (videoElement) {
-      // Définir explicitement la propriété loop
+      // Définir explicitement la propriété de boucle
       this.renderer.setAttribute(videoElement, "loop", "true")
       this.renderer.setAttribute(videoElement, "autoplay", "true")
       this.renderer.setAttribute(videoElement, "muted", "true")
@@ -55,12 +57,12 @@ export class LoginComponent implements OnInit, AfterViewInit {
 
       // Fonction pour démarrer la vidéo
       const playVideo = () => {
-        videoElement.play().catch((error) => {
-          console.warn("Autoplay prevented:", error)
+        videoElement.play().catch((error: Error) => {
+          console.warn("Lecture automatique empêchée:", error)
 
-          // Si l'autoplay est bloqué, on essaie de démarrer la vidéo lors d'une interaction utilisateur
+          // Si la lecture automatique est bloquée, essayer de démarrer la vidéo lors d'une interaction utilisateur
           const startPlayback = () => {
-            videoElement.play().catch((e) => console.error("Erreur lors de la lecture après interaction:", e))
+            videoElement.play().catch((e: Error) => console.error("Erreur de lecture après interaction:", e))
             document.removeEventListener("click", startPlayback)
             document.removeEventListener("touchstart", startPlayback)
             document.removeEventListener("keydown", startPlayback)
@@ -139,15 +141,18 @@ export class LoginComponent implements OnInit, AfterViewInit {
       password: this.loginForm.value.password,
     }
 
+    console.log("Tentative de connexion avec:", credentials.identifier);
+
     // Utiliser le service d'authentification centralisé
     this.authService.authenticate(credentials).subscribe({
-      next: (response) => {
+      next: (response: any) => {
         console.log("Authentification réussie:", response)
 
         // La redirection est gérée par le service d'authentification
         const userRole = this.authService.getUserRole()
 
         if (userRole === "teacher") {
+          console.log("Redirection vers l'interface enseignant");
           this.router.navigate(["/deuxieme-interface"])
         } else if (userRole === "student") {
           // Pour les étudiants, vérifier si nous avons bien récupéré leurs informations
@@ -157,15 +162,17 @@ export class LoginComponent implements OnInit, AfterViewInit {
           } else {
             console.log("Informations étudiant récupérées avec succès:", studentInfo)
           }
+          console.log("Redirection vers l'interface étudiant");
           this.router.navigate(["/troixieme-interface"])
         } else {
-          // Fallback au cas où le rôle n'est pas défini
+          // Solution de repli au cas où le rôle n'est pas défini
+          console.log("Rôle non défini, redirection vers la page d'accueil");
           this.router.navigate(["/"])
         }
 
         this.isSubmitting = false
       },
-      error: (error) => {
+      error: (error: Error) => {
         console.error("Échec de l'authentification:", error)
         this.errorMessage = error.message || "Identifiants invalides"
         this.isSubmitting = false
@@ -178,7 +185,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
     this.router.navigate(["/forgot-password"])
   }
 
-  // Ajoutez cette méthode à votre classe LoginComponent
+  // Méthode de débogage pour l'authentification
   debugAuthentication(): void {
     console.log("--- ÉTAT D'AUTHENTIFICATION ---")
     console.log("Utilisateur actuel:", this.authService.getCurrentUser())
@@ -196,9 +203,10 @@ export class LoginComponent implements OnInit, AfterViewInit {
     }
 
     console.log("Test direct de l'API d'authentification des étudiants...")
-    this.authService["userService"].authenticateStudent(credentials).subscribe({
-      next: (response) => console.log("Réponse:", response),
-      error: (error) => console.error("Erreur:", error),
+    // Utiliser userService directement au lieu de l'accéder via authService
+    this.userService.authenticateStudent(credentials).subscribe({
+      next: (response: any) => console.log("Réponse:", response),
+      error: (error: any) => console.error("Erreur:", error),
     })
   }
 

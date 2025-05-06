@@ -42,7 +42,7 @@ export interface Filiere {
   providedIn: "root",
 })
 export class GroupeService {
-  private apiUrl = "http://localhost:5000/api/groupes"
+  private apiUrl = "http://localhost:5001/api/groupes"
 
   constructor(private http: HttpClient) {}
 

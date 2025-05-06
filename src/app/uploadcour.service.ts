@@ -7,7 +7,7 @@ import { catchError, map } from "rxjs/operators"
   providedIn: "root",
 })
 export class UploadcourService {
-  private apiUrl = "http://localhost:5000/api" // URL de votre API backend
+  private apiUrl = "http://localhost:5001/api" // URL de votre API backend
 
   constructor(private http: HttpClient) {}
 

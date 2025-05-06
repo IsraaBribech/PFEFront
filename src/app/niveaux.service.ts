@@ -7,7 +7,7 @@ import { catchError, tap } from "rxjs/operators"
   providedIn: "root",
 })
 export class NiveauxService {
-  private apiUrl = "http://localhost:5000/api/niveaux"
+  private apiUrl = "http://localhost:5001/api/niveaux"
   private httpOptions = {
     headers: new HttpHeaders({
       "Content-Type": "application/json",

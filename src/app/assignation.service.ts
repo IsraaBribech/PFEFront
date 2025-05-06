@@ -23,7 +23,7 @@ export interface Assignation {
   providedIn: "root",
 })
 export class AssignationService {
-  private apiUrl = "http://localhost:5000/api/assignations"
+  private apiUrl = "http://localhost:5001/api/assignations"
 
   constructor(private http: HttpClient) {}
 

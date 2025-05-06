@@ -61,7 +61,7 @@ export interface StatusUpdate {
   providedIn: "root",
 })
 export class VoeuxService {
-  private apiUrl = "http://localhost:5000/api/voeux"
+  private apiUrl = "http://localhost:5001/api/voeux"
 
   // Information de l'enseignant connecté (à remplacer par une authentification réelle)
   private currentEnseignant = {

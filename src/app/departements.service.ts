@@ -6,7 +6,7 @@ import { Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class DepartementsService {
-  private apiUrl = 'http://localhost:5000/api/departements'; // Assurez-vous que le backend tourne bien
+  private apiUrl = 'http://localhost:5001/api/departements'; // Assurez-vous que le backend tourne bien
 
   constructor(private http: HttpClient) {}
 
