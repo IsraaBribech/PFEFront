@@ -180,10 +180,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
     })
   }
 
-  forgotPassword(): void {
-    // Implémenter la logique pour le mot de passe oublié
-    this.router.navigate(["/forgot-password"])
-  }
+  // Méthode forgotPassword supprimée
 
   // Méthode de débogage pour l'authentification
   debugAuthentication(): void {

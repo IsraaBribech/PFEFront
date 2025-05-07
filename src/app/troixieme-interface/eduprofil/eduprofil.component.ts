@@ -1,4 +1,6 @@
 import { Component, type OnInit } from "@angular/core"
+import  { AuthService } from "../../auth.service"
+import  { Router } from "@angular/router"
 
 interface Gouvernorat {
   id: number
@@ -20,20 +22,39 @@ interface Delegation {
 export class EduprofilComponent implements OnInit {
   // Informations de l'étudiant
   etudiantInfo = {
-    nom: "Benali",
-    prenom: "Ahmed",
-    dateNaissance: "1998-05-15",
-    email: "ahmed.benali@etudiant.edu",
-    identifiant: "E12345",
-    cin: "12345678",
+    nom: "",
+    prenom: "",
+    dateNaissance: "",
+    email: "",
+    identifiant: "",
+    cin: "",
     etatCivil: "celibataire",
     adresse: {
-      rue: "15 Rue des Oliviers",
-      codePostal: "1002",
-      gouvernoratId: 23, // Tunis
-      delegationId: 11, // Bab Bhar
+      rue: "",
+      codePostal: "",
+      gouvernorat: "",
+      delegation: "",
     },
-    telephone: "55123456",
+    telephone: "",
+    photoUrl: "",
+  }
+
+  // Sauvegarde des informations originales pour pouvoir annuler les modifications
+  etudiantInfoOriginal = {
+    nom: "",
+    prenom: "",
+    dateNaissance: "",
+    email: "",
+    identifiant: "",
+    cin: "",
+    etatCivil: "celibataire",
+    adresse: {
+      rue: "",
+      codePostal: "",
+      gouvernorat: "",
+      delegation: "",
+    },
+    telephone: "",
     photoUrl: "",
   }
 
@@ -282,29 +303,79 @@ export class EduprofilComponent implements OnInit {
 
   // Photo de profil
   photoPreview: string | ArrayBuffer | null = null
+  photoOriginal: string | ArrayBuffer | null = null
 
-  constructor() {}
+  // Indique si les données sont en cours de chargement
+  isLoading = true
+
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+  ) {}
 
   ngOnInit(): void {
-    // Initialiser les délégations filtrées en fonction du gouvernorat sélectionné
-    this.filtrerDelegations()
+    // Charger les informations de l'étudiant
+    this.loadStudentInfo()
   }
 
-  // Méthode pour filtrer les délégations en fonction du gouvernorat sélectionné
-  filtrerDelegations(): void {
-    this.delegationsFiltrees = this.delegations.filter(
-      (delegation) => delegation.gouvernoratId === this.etudiantInfo.adresse.gouvernoratId,
-    )
+  // Méthode pour charger les informations de l'étudiant
+  loadStudentInfo(): void {
+    this.isLoading = true
 
-    // Si aucune délégation n'est trouvée pour ce gouvernorat, réinitialiser la délégation sélectionnée
-    if (!this.delegationsFiltrees.some((d) => d.id === this.etudiantInfo.adresse.delegationId)) {
-      this.etudiantInfo.adresse.delegationId = this.delegationsFiltrees.length > 0 ? this.delegationsFiltrees[0].id : 0
+    // Récupérer les informations de l'étudiant depuis le service d'authentification
+    const studentInfo = this.authService.getStudentInfo()
+
+    if (studentInfo) {
+      console.log("Informations étudiant récupérées:", studentInfo)
+
+      // Extraire le prénom et le nom à partir du nom complet
+      const fullName = studentInfo.name || ""
+      const nameParts = fullName.split(" ")
+      const prenom = nameParts[0] || ""
+      const nom = nameParts.slice(1).join(" ") || ""
+
+      // Mettre à jour les informations de l'étudiant
+      this.etudiantInfo = {
+        nom: nom,
+        prenom: prenom,
+        dateNaissance: this.formatDate(studentInfo.birthDate),
+        email: studentInfo.email || "",
+        identifiant: studentInfo.matricule || "",
+        cin: studentInfo.cin || "",
+        etatCivil: studentInfo.civilStatus || "celibataire",
+        adresse: {
+          rue: studentInfo.address?.street || "",
+          codePostal: studentInfo.address?.postalCode || "",
+          gouvernorat: studentInfo.address?.gouvernorat || "",
+          delegation: studentInfo.address?.delegation || "",
+        },
+        telephone: studentInfo.telephone || "",
+        photoUrl: "",
+      }
+
+      // Sauvegarder une copie des informations originales pour pouvoir annuler les modifications
+      this.etudiantInfoOriginal = JSON.parse(JSON.stringify(this.etudiantInfo))
+
+      // Sauvegarder l'état original de la photo
+      this.photoOriginal = this.photoPreview
+    } else {
+      console.error("Aucune information d'étudiant disponible")
     }
+
+    this.isLoading = false
   }
 
-  // Méthode pour gérer le changement de gouvernorat
-  onGouvernoratChange(): void {
-    this.filtrerDelegations()
+  // Formater la date pour l'affichage
+  formatDate(date: string | Date | undefined): string {
+    if (!date) return ""
+
+    try {
+      const d = new Date(date)
+      return d.toISOString().split("T")[0]
+    } catch (e) {
+      console.error("Erreur lors du formatage de la date:", e)
+      return ""
+    }
   }
 
   // Méthode pour gérer le téléchargement de la photo de profil
@@ -387,12 +458,12 @@ export class EduprofilComponent implements OnInit {
       valide = false
     }
 
-    if (!this.etudiantInfo.adresse.gouvernoratId) {
+    if (!this.etudiantInfo.adresse.gouvernorat.trim()) {
       this.erreurs["gouvernorat"] = "Le gouvernorat est obligatoire"
       valide = false
     }
 
-    if (!this.etudiantInfo.adresse.delegationId) {
+    if (!this.etudiantInfo.adresse.delegation.trim()) {
       this.erreurs["delegation"] = "La délégation est obligatoire"
       valide = false
     }
@@ -413,29 +484,69 @@ export class EduprofilComponent implements OnInit {
 
     if (this.validerFormulaire()) {
       this.formValide = true
-      // Ici, vous pourriez envoyer les données à un service ou une API
-      console.log("Formulaire soumis avec succès", this.etudiantInfo)
 
-      // Simuler un délai pour montrer le message de succès
-      setTimeout(() => {
-        this.formSoumis = false
-        this.formValide = false
-        alert("Profil mis à jour avec succès !")
-      }, 2000)
+      // Préparer les données à envoyer
+      const studentData = {
+        name: `${this.etudiantInfo.prenom} ${this.etudiantInfo.nom}`,
+        email: this.etudiantInfo.email,
+        cin: this.etudiantInfo.cin,
+        birthDate: this.etudiantInfo.dateNaissance,
+        civilStatus: this.etudiantInfo.etatCivil,
+        telephone: this.etudiantInfo.telephone,
+        address: {
+          street: this.etudiantInfo.adresse.rue,
+          postalCode: this.etudiantInfo.adresse.codePostal,
+          gouvernorat: this.etudiantInfo.adresse.gouvernorat,
+          delegation: this.etudiantInfo.adresse.delegation,
+        },
+      }
+
+      // Envoyer les données au service
+      this.authService.updateStudentProfile(studentData).subscribe(
+        (response) => {
+          console.log("Profil mis à jour avec succès:", response)
+
+          // Mettre à jour les informations originales après une sauvegarde réussie
+          this.etudiantInfoOriginal = JSON.parse(JSON.stringify(this.etudiantInfo))
+          this.photoOriginal = this.photoPreview
+
+          // Simuler un délai pour montrer le message de succès
+          setTimeout(() => {
+            this.formSoumis = false
+            this.formValide = false
+            alert("Profil mis à jour avec succès !")
+          }, 2000)
+        },
+        (error) => {
+          console.error("Erreur lors de la mise à jour du profil:", error)
+          this.formSoumis = false
+          this.formValide = false
+          alert("Erreur lors de la mise à jour du profil. Veuillez réessayer.")
+        },
+      )
     } else {
       console.log("Formulaire invalide", this.erreurs)
+      this.formSoumis = false
     }
   }
 
-  // Méthode pour obtenir le nom du gouvernorat à partir de son ID
-  getNomGouvernorat(id: number): string {
-    const gouvernorat = this.gouvernorats.find((g) => g.id === id)
-    return gouvernorat ? gouvernorat.nom : ""
-  }
+  // Méthode pour annuler les modifications et restaurer les informations originales
+  annulerModifications(): void {
+    // Restaurer les informations originales
+    this.etudiantInfo = JSON.parse(JSON.stringify(this.etudiantInfoOriginal))
 
-  // Méthode pour obtenir le nom de la délégation à partir de son ID
-  getNomDelegation(id: number): string {
-    const delegation = this.delegations.find((d) => d.id === id)
-    return delegation ? delegation.nom : ""
+    // Restaurer la photo originale
+    this.photoPreview = this.photoOriginal
+
+    // Réinitialiser les erreurs et l'état du formulaire
+    this.erreurs = {}
+    this.formSoumis = false
+    this.formValide = false
+
+    // Afficher un message de confirmation
+    alert("Les modifications ont été annulées.")
+
+    // Optionnel: rediriger vers le tableau de bord
+    this.router.navigate(["/troixieme-interface"])
   }
 }

@@ -1,239 +1,232 @@
 <div class="eduprofil-container">
-    <div class="content-header">
-      <div class="header-title">
-        <h1>Mon Profil</h1>
-      </div>
-      <div class="header-actions">
-        <button class="btn-secondary" routerLink="/troixieme-interface">
-          <i class="fas fa-arrow-left"></i> Retour au tableau de bord
-        </button>
-      </div>
+  <div class="content-header">
+    <div class="header-title">
+      <h1>Mon Profil</h1>
     </div>
-  
-    <div class="profile-card">
-      <div class="card-header">
-        <h2><i class="fas fa-user-edit"></i> Modifier mes informations personnelles</h2>
-        <p>Tous les champs marqués d'un astérisque (*) sont obligatoires</p>
-      </div>
-  
-      <form (ngSubmit)="soumettreFormulaire()" class="profile-form">
-        <!-- Photo de profil -->
-        <div class="form-section">
-          <h3>Photo de profil</h3>
-          <div class="photo-upload-container">
-            <div class="photo-preview" [class.has-photo]="photoPreview">
-              <img *ngIf="photoPreview" [src]="photoPreview" alt="Photo de profil">
-              <div *ngIf="!photoPreview" class="photo-placeholder">
-                <i class="fas fa-user"></i>
-              </div>
-            </div>
-            <div class="photo-upload-actions">
-              <label for="photo-upload" class="btn-upload">
-                <i class="fas fa-camera"></i> Choisir une photo
-              </label>
-              <input type="file" id="photo-upload" accept="image/*" (change)="onPhotoChange($event)" hidden>
-              <p class="photo-hint">Format JPG ou PNG, max 5MB</p>
-            </div>
-          </div>
-        </div>
-  
-        <!-- Informations personnelles -->
-        <div class="form-section">
-          <h3>Informations personnelles</h3>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="nom">Nom *</label>
-              <input 
-                type="text" 
-                id="nom" 
-                name="nom" 
-                [(ngModel)]="etudiantInfo.nom" 
-                [class.is-invalid]="erreurs['nom']"
-                required
-              >
-              <div *ngIf="erreurs['nom']" class="error-message">{{ erreurs['nom'] }}</div>
-            </div>
-            <div class="form-group">
-              <label for="prenom">Prénom *</label>
-              <input 
-                type="text" 
-                id="prenom" 
-                name="prenom" 
-                [(ngModel)]="etudiantInfo.prenom" 
-                [class.is-invalid]="erreurs['prenom']"
-                required
-              >
-              <div *ngIf="erreurs['prenom']" class="error-message">{{ erreurs['prenom'] }}</div>
-            </div>
-          </div>
-  
-          <div class="form-row">
-            <div class="form-group">
-              <label for="dateNaissance">Date de naissance *</label>
-              <input 
-                type="date" 
-                id="dateNaissance" 
-                name="dateNaissance" 
-                [(ngModel)]="etudiantInfo.dateNaissance" 
-                [class.is-invalid]="erreurs['dateNaissance']"
-                required
-              >
-              <div *ngIf="erreurs['dateNaissance']" class="error-message">{{ erreurs['dateNaissance'] }}</div>
-            </div>
-            <div class="form-group">
-              <label for="etatCivil">État civil *</label>
-              <select 
-                id="etatCivil" 
-                name="etatCivil" 
-                [(ngModel)]="etudiantInfo.etatCivil" 
-                [class.is-invalid]="erreurs['etatCivil']"
-                required
-              >
-                <option value="" disabled>Sélectionnez votre état civil</option>
-                <option *ngFor="let etat of etatsCivils" [value]="etat.id">{{ etat.label }}</option>
-              </select>
-              <div *ngIf="erreurs['etatCivil']" class="error-message">{{ erreurs['etatCivil'] }}</div>
-            </div>
-          </div>
-        </div>
-  
-        <!-- Informations d'identification -->
-        <div class="form-section">
-          <h3>Informations d'identification</h3>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="email">Email *</label>
-              <input 
-                type="email" 
-                id="email" 
-                name="email" 
-                [(ngModel)]="etudiantInfo.email" 
-                [class.is-invalid]="erreurs['email']"
-                required
-              >
-              <div *ngIf="erreurs['email']" class="error-message">{{ erreurs['email'] }}</div>
-            </div>
-            <div class="form-group">
-              <label for="identifiant">Matricule</label>
-              <input 
-                type="text" 
-                id="identifiant" 
-                name="identifiant" 
-                [(ngModel)]="etudiantInfo.identifiant" 
-                disabled
-              >
-              <div class="input-hint">Le matricule ne peut pas être modifié</div>
-            </div>
-          </div>
-  
-          <div class="form-row">
-            <div class="form-group">
-              <label for="cin">N° CIN ou N° Passeport *</label>
-              <input 
-                type="text" 
-                id="cin" 
-                name="cin" 
-                [(ngModel)]="etudiantInfo.cin" 
-                [class.is-invalid]="erreurs['cin']"
-                required
-              >
-              <div *ngIf="erreurs['cin']" class="error-message">{{ erreurs['cin'] }}</div>
-            </div>
-            <div class="form-group">
-              <label for="telephone">Téléphone *</label>
-              <input 
-                type="tel" 
-                id="telephone" 
-                name="telephone" 
-                [(ngModel)]="etudiantInfo.telephone" 
-                [class.is-invalid]="erreurs['telephone']"
-                required
-              >
-              <div *ngIf="erreurs['telephone']" class="error-message">{{ erreurs['telephone'] }}</div>
-            </div>
-          </div>
-        </div>
-  
-        <!-- Adresse -->
-        <div class="form-section">
-          <h3>Adresse</h3>
-          <div class="form-group full-width">
-            <label for="rue">Rue *</label>
-            <input 
-              type="text" 
-              id="rue" 
-              name="rue" 
-              [(ngModel)]="etudiantInfo.adresse.rue" 
-              [class.is-invalid]="erreurs['rue']"
-              required
-            >
-            <div *ngIf="erreurs['rue']" class="error-message">{{ erreurs['rue'] }}</div>
-          </div>
-  
-          <div class="form-row">
-            <div class="form-group">
-              <label for="codePostal">Code postal *</label>
-              <input 
-                type="text" 
-                id="codePostal" 
-                name="codePostal" 
-                [(ngModel)]="etudiantInfo.adresse.codePostal" 
-                [class.is-invalid]="erreurs['codePostal']"
-                required
-              >
-              <div *ngIf="erreurs['codePostal']" class="error-message">{{ erreurs['codePostal'] }}</div>
-            </div>
-            <div class="form-group">
-              <label for="gouvernorat">Gouvernorat *</label>
-              <select 
-                id="gouvernorat" 
-                name="gouvernorat" 
-                [(ngModel)]="etudiantInfo.adresse.gouvernoratId" 
-                (change)="onGouvernoratChange()"
-                [class.is-invalid]="erreurs['gouvernorat']"
-                required
-              >
-                <option value="" disabled>Sélectionnez un gouvernorat</option>
-                <option *ngFor="let gouvernorat of gouvernorats" [value]="gouvernorat.id">{{ gouvernorat.nom }}</option>
-              </select>
-              <div *ngIf="erreurs['gouvernorat']" class="error-message">{{ erreurs['gouvernorat'] }}</div>
-            </div>
-          </div>
-  
-          <div class="form-group full-width">
-            <label for="delegation">Délégation *</label>
-            <select 
-              id="delegation" 
-              name="delegation" 
-              [(ngModel)]="etudiantInfo.adresse.delegationId" 
-              [class.is-invalid]="erreurs['delegation']"
-              required
-            >
-              <option value="" disabled>Sélectionnez une délégation</option>
-              <option *ngFor="let delegation of delegationsFiltrees" [value]="delegation.id">{{ delegation.nom }}</option>
-            </select>
-            <div *ngIf="erreurs['delegation']" class="error-message">{{ erreurs['delegation'] }}</div>
-          </div>
-        </div>
-  
-        <!-- Actions du formulaire -->
-        <div class="form-actions">
-          <button type="button" class="btn-secondary" routerLink="/troixieme-interface">
-            <i class="fas fa-times"></i> Annuler
-          </button>
-          <button type="submit" class="btn-primary" [disabled]="formSoumis && !formValide">
-            <i class="fas" [ngClass]="formSoumis ? 'fa-spinner fa-spin' : 'fa-save'"></i>
-            {{ formSoumis ? 'Enregistrement...' : 'Enregistrer les modifications' }}
-          </button>
-        </div>
-  
-        <!-- Message de succès -->
-        <div *ngIf="formSoumis && formValide" class="success-message">
-          <i class="fas fa-check-circle"></i>
-          <span>Vos informations ont été mises à jour avec succès !</span>
-        </div>
-      </form>
+    <div class="header-actions">
+      <button class="btn-secondary" routerLink="/troixieme-interface">
+        <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+      </button>
     </div>
   </div>
-  
-  
+
+  <div class="profile-card">
+    <div class="card-header">
+      <h2><i class="fas fa-user-edit"></i> Modifier mes informations personnelles</h2>
+      <p>Tous les champs marqués d'un astérisque (*) sont obligatoires</p>
+    </div>
+
+    <form (ngSubmit)="soumettreFormulaire()" class="profile-form">
+      <!-- Photo de profil -->
+      <div class="form-section">
+        <h3>Photo de profil</h3>
+        <div class="photo-upload-container">
+          <div class="photo-preview" [class.has-photo]="photoPreview">
+            <img *ngIf="photoPreview" [src]="photoPreview" alt="Photo de profil">
+            <div *ngIf="!photoPreview" class="photo-placeholder">
+              <i class="fas fa-user"></i>
+            </div>
+          </div>
+          <div class="photo-upload-actions">
+            <label for="photo-upload" class="btn-upload">
+              <i class="fas fa-camera"></i> Choisir une photo
+            </label>
+            <input type="file" id="photo-upload" accept="image/*" (change)="onPhotoChange($event)" hidden>
+            <p class="photo-hint">Format JPG ou PNG, max 5MB</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Informations personnelles -->
+      <div class="form-section">
+        <h3>Informations personnelles</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="nom">Nom *</label>
+            <input 
+              type="text" 
+              id="nom" 
+              name="nom" 
+              [(ngModel)]="etudiantInfo.nom" 
+              [class.is-invalid]="erreurs['nom']"
+              required
+            >
+            <div *ngIf="erreurs['nom']" class="error-message">{{ erreurs['nom'] }}</div>
+          </div>
+          <div class="form-group">
+            <label for="prenom">Prénom *</label>
+            <input 
+              type="text" 
+              id="prenom" 
+              name="prenom" 
+              [(ngModel)]="etudiantInfo.prenom" 
+              [class.is-invalid]="erreurs['prenom']"
+              required
+            >
+            <div *ngIf="erreurs['prenom']" class="error-message">{{ erreurs['prenom'] }}</div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="dateNaissance">Date de naissance *</label>
+            <input 
+              type="date" 
+              id="dateNaissance" 
+              name="dateNaissance" 
+              [(ngModel)]="etudiantInfo.dateNaissance" 
+              [class.is-invalid]="erreurs['dateNaissance']"
+              required
+            >
+            <div *ngIf="erreurs['dateNaissance']" class="error-message">{{ erreurs['dateNaissance'] }}</div>
+          </div>
+          <div class="form-group">
+            <label for="etatCivil">État civil *</label>
+            <select 
+              id="etatCivil" 
+              name="etatCivil" 
+              [(ngModel)]="etudiantInfo.etatCivil" 
+              [class.is-invalid]="erreurs['etatCivil']"
+              required
+            >
+              <option value="" disabled>Sélectionnez votre état civil</option>
+              <option *ngFor="let etat of etatsCivils" [value]="etat.id">{{ etat.label }}</option>
+            </select>
+            <div *ngIf="erreurs['etatCivil']" class="error-message">{{ erreurs['etatCivil'] }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Informations d'identification -->
+      <div class="form-section">
+        <h3>Informations d'identification</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="email">Email *</label>
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              [(ngModel)]="etudiantInfo.email" 
+              [class.is-invalid]="erreurs['email']"
+              required
+            >
+            <div *ngIf="erreurs['email']" class="error-message">{{ erreurs['email'] }}</div>
+          </div>
+          <div class="form-group">
+            <label for="identifiant">Matricule</label>
+            <input 
+              type="text" 
+              id="identifiant" 
+              name="identifiant" 
+              [(ngModel)]="etudiantInfo.identifiant" 
+              disabled
+            >
+            <div class="input-hint">Le matricule ne peut pas être modifié</div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cin">N° CIN ou N° Passeport *</label>
+            <input 
+              type="text" 
+              id="cin" 
+              name="cin" 
+              [(ngModel)]="etudiantInfo.cin" 
+              [class.is-invalid]="erreurs['cin']"
+              required
+            >
+            <div *ngIf="erreurs['cin']" class="error-message">{{ erreurs['cin'] }}</div>
+          </div>
+          <div class="form-group">
+            <label for="telephone">Téléphone *</label>
+            <input 
+              type="tel" 
+              id="telephone" 
+              name="telephone" 
+              [(ngModel)]="etudiantInfo.telephone" 
+              [class.is-invalid]="erreurs['telephone']"
+              required
+            >
+            <div *ngIf="erreurs['telephone']" class="error-message">{{ erreurs['telephone'] }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Adresse -->
+      <div class="form-section">
+        <h3>Adresse</h3>
+        <div class="form-group full-width">
+          <label for="rue">Rue *</label>
+          <input 
+            type="text" 
+            id="rue" 
+            name="rue" 
+            [(ngModel)]="etudiantInfo.adresse.rue" 
+            [class.is-invalid]="erreurs['rue']"
+            required
+          >
+          <div *ngIf="erreurs['rue']" class="error-message">{{ erreurs['rue'] }}</div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="codePostal">Code postal *</label>
+            <input 
+              type="text" 
+              id="codePostal" 
+              name="codePostal" 
+              [(ngModel)]="etudiantInfo.adresse.codePostal" 
+              [class.is-invalid]="erreurs['codePostal']"
+              required
+            >
+            <div *ngIf="erreurs['codePostal']" class="error-message">{{ erreurs['codePostal'] }}</div>
+          </div>
+          <div class="form-group">
+            <label for="gouvernorat">Gouvernorat *</label>
+            <input 
+              type="text" 
+              id="gouvernorat" 
+              name="gouvernorat" 
+              [(ngModel)]="etudiantInfo.adresse.gouvernorat" 
+              [class.is-invalid]="erreurs['gouvernorat']"
+              required
+            >
+            <div *ngIf="erreurs['gouvernorat']" class="error-message">{{ erreurs['gouvernorat'] }}</div>
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="delegation">Délégation *</label>
+          <input 
+            type="text" 
+            id="delegation" 
+            name="delegation" 
+            [(ngModel)]="etudiantInfo.adresse.delegation" 
+            [class.is-invalid]="erreurs['delegation']"
+            required
+          >
+          <div *ngIf="erreurs['delegation']" class="error-message">{{ erreurs['delegation'] }}</div>
+        </div>
+      </div>
+
+      <!-- Actions du formulaire -->
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" (click)="annulerModifications()">
+          <i class="fas fa-times"></i> Annuler
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="formSoumis && !formValide">
+          <i class="fas" [ngClass]="formSoumis ? 'fa-spinner fa-spin' : 'fa-save'"></i>
+          {{ formSoumis ? 'Enregistrement...' : 'Enregistrer les modifications' }}
+        </button>
+      </div>
+
+      <!-- Message de succès -->
+      <div *ngIf="formSoumis && formValide" class="success-message">
+        <i class="fas fa-check-circle"></i>
+        <span>Vos informations ont été mises à jour avec succès !</span>
+      </div>
+    </form>
+  </div>
+</div>
