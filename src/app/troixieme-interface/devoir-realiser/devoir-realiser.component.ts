@@ -1,13 +1,13 @@
 import { Component, type OnInit, type OnDestroy, HostListener } from "@angular/core"
-import { Router } from "@angular/router"
-import { HttpClient } from "@angular/common/http"
-import { DevoirService } from "../../devoir.service"
-import { SoumissionsService } from "../../soumissions.service"
-import { CoursService, Cours } from "../../cours.service"
-import { EnseignantService } from "../../enseignant.service"
-import { AuthService, StudentInfo } from "../../auth.service"
-import { NotificationService, AcademicNotification, MessageNotification } from "../../notification.service"
-import { Subscription } from "rxjs"
+import  { Router } from "@angular/router"
+import  { HttpClient } from "@angular/common/http"
+import  { DevoirService } from "../../devoir.service"
+import  { SoumissionsService } from "../../soumissions.service"
+import  { CoursService, Cours } from "../../cours.service"
+import  { EnseignantService } from "../../enseignant.service"
+import  { AuthService, StudentInfo } from "../../auth.service"
+import  { NotificationService, AcademicNotification, MessageNotification } from "../../notification.service"
+import  { Subscription } from "rxjs"
 
 interface Devoir {
   id: string
@@ -1217,7 +1217,7 @@ export class DevoirRealiserComponent implements OnInit, OnDestroy {
         this.commentaire,
         this.etudiantEmail,
         this.etudiantMatricule,
-        this.groupe
+        this.groupe,
       )
       .subscribe({
         next: (response) => {

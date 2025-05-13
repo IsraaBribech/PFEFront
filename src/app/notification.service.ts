@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core"
-import { HttpClient } from "@angular/common/http"
-import { BehaviorSubject, type Observable, of, forkJoin } from "rxjs"
+import  { HttpClient } from "@angular/common/http"
+import { BehaviorSubject, type Observable, of, forkJoin, throwError } from "rxjs"
 import { map, tap, catchError } from "rxjs/operators"
 
 // Interface de base pour les notifications
@@ -57,34 +57,71 @@ export class NotificationService {
 
   constructor(private http: HttpClient) {}
 
+  // Méthode pour tester la connexion au service
+  testConnection(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/test-connection`).pipe(
+      catchError((error) => {
+        console.error("Erreur lors du test de connexion au service de notification:", error)
+        return throwError(() => new Error("Erreur de connexion au service de notification"))
+      }),
+    )
+  }
+
   // Charger toutes les notifications pour un utilisateur
   loadAllNotifications(
     userId: string,
     userType: "etudiant" | "enseignant",
   ): Observable<{ academic: AcademicNotification[]; messages: MessageNotification[] }> {
+    console.log(`NotificationService: Chargement des notifications pour ${userType} avec ID ${userId}`)
+
+    // Vérifier les paramètres
+    if (!userId || !userType) {
+      console.error("UserId et userType sont requis pour charger les notifications")
+      return throwError(() => new Error("UserId et userType sont requis"))
+    }
+
     return forkJoin({
       academic: this.loadAcademicNotifications(userId, userType),
       messages: this.loadMessageNotifications(userId, userType),
-    })
+    }).pipe(
+      tap((results) => {
+        console.log(`Notifications académiques chargées: ${results.academic.length}`)
+        console.log(`Notifications de messages chargées: ${results.messages.length}`)
+      }),
+      catchError((error) => {
+        console.error("Erreur lors du chargement des notifications:", error)
+        return throwError(() => new Error("Erreur lors du chargement des notifications"))
+      }),
+    )
   }
 
   // Charger les notifications académiques
   loadAcademicNotifications(userId: string, userType: "etudiant" | "enseignant"): Observable<AcademicNotification[]> {
     const queryParam = userType === "etudiant" ? "etudiantId" : "enseignantId"
+    console.log(`Chargement des notifications académiques pour ${queryParam}=${userId}`)
 
-    return this.http.get<any[]>(`${this.apiUrl}/academic?${queryParam}=${userId}`).pipe(
-      map((data) => this.transformAcademicNotifications(data)),
+    return this.http.get<any>(`${this.apiUrl}/academic?${queryParam}=${userId}`).pipe(
+      map((response) => {
+        if (response && response.success && Array.isArray(response.data)) {
+          return this.transformAcademicNotifications(response.data)
+        } else if (Array.isArray(response)) {
+          return this.transformAcademicNotifications(response)
+        } else {
+          console.warn("Format de réponse inattendu pour les notifications académiques:", response)
+          return []
+        }
+      }),
       tap((notifications) => {
+        console.log(`${notifications.length} notifications académiques chargées`)
         this.academicNotificationsSubject.next(notifications)
         this.updateUnreadAcademicCount(notifications)
       }),
       catchError((error) => {
         console.error("Erreur lors de la récupération des notifications académiques:", error)
-        // En cas d'erreur, utiliser des données simulées
-        const mockNotifications = this.generateMockAcademicNotifications(userId)
-        this.academicNotificationsSubject.next(mockNotifications)
-        this.updateUnreadAcademicCount(mockNotifications)
-        return of(mockNotifications)
+        // Ne pas utiliser de données simulées, retourner un tableau vide
+        this.academicNotificationsSubject.next([])
+        this.updateUnreadAcademicCount([])
+        return of([])
       }),
     )
   }
@@ -92,26 +129,40 @@ export class NotificationService {
   // Charger les notifications de messages
   loadMessageNotifications(userId: string, userType: "etudiant" | "enseignant"): Observable<MessageNotification[]> {
     const queryParam = userType === "etudiant" ? "etudiantId" : "enseignantId"
+    console.log(`Chargement des notifications de messages pour ${queryParam}=${userId}`)
 
-    return this.http.get<any[]>(`${this.apiUrl}/messages?${queryParam}=${userId}`).pipe(
-      map((data) => this.transformMessageNotifications(data)),
+    return this.http.get<any>(`${this.apiUrl}/messages?${queryParam}=${userId}`).pipe(
+      map((response) => {
+        if (response && response.success && Array.isArray(response.data)) {
+          return this.transformMessageNotifications(response.data)
+        } else if (Array.isArray(response)) {
+          return this.transformMessageNotifications(response)
+        } else {
+          console.warn("Format de réponse inattendu pour les notifications de messages:", response)
+          return []
+        }
+      }),
       tap((notifications) => {
+        console.log(`${notifications.length} notifications de messages chargées`)
         this.messageNotificationsSubject.next(notifications)
         this.updateUnreadMessageCount(notifications)
       }),
       catchError((error) => {
         console.error("Erreur lors de la récupération des notifications de messages:", error)
-        // En cas d'erreur, utiliser des données simulées
-        const mockNotifications = this.generateMockMessageNotifications(userId)
-        this.messageNotificationsSubject.next(mockNotifications)
-        this.updateUnreadMessageCount(mockNotifications)
-        return of(mockNotifications)
+        // Ne pas utiliser de données simulées, retourner un tableau vide
+        this.messageNotificationsSubject.next([])
+        this.updateUnreadMessageCount([])
+        return of([])
       }),
     )
   }
 
   // Transformation des données académiques du serveur
   private transformAcademicNotifications(data: any[]): AcademicNotification[] {
+    if (!Array.isArray(data) || data.length === 0) {
+      return []
+    }
+
     return data.map((item) => ({
       id: item._id || item.id,
       type: item.type || "cours",
@@ -129,6 +180,10 @@ export class NotificationService {
 
   // Transformation des données de messages du serveur
   private transformMessageNotifications(data: any[]): MessageNotification[] {
+    if (!Array.isArray(data) || data.length === 0) {
+      return []
+    }
+
     return data.map((item) => ({
       id: item._id || item.id,
       type: "message",
@@ -166,9 +221,20 @@ export class NotificationService {
 
   // Marquer une notification académique comme lue
   markAcademicNotificationAsRead(notificationId: string | number): Observable<AcademicNotification> {
+    console.log(`Marquage de la notification académique ${notificationId} comme lue`)
+
     return this.http.patch<any>(`${this.apiUrl}/academic/${notificationId}/read`, {}).pipe(
-      map((data) => this.transformAcademicNotifications([data])[0]),
+      map((data) => {
+        if (data && data.success && data.data) {
+          return this.transformAcademicNotifications([data.data])[0]
+        } else if (data) {
+          return this.transformAcademicNotifications([data])[0]
+        } else {
+          throw new Error("Format de réponse inattendu")
+        }
+      }),
       tap((updatedNotification) => {
+        console.log(`Notification académique ${notificationId} marquée comme lue avec succès`)
         const currentNotifications = this.academicNotificationsSubject.value
         const updatedNotifications = currentNotifications.map((n) =>
           n.id === notificationId ? { ...n, read: true } : n,
@@ -185,17 +251,29 @@ export class NotificationService {
           notification.read = true
           this.academicNotificationsSubject.next([...currentNotifications])
           this.updateUnreadAcademicCount(currentNotifications)
+          return of({ ...notification, read: true } as AcademicNotification)
         }
-        return of(notification as AcademicNotification)
+        return throwError(() => new Error(`Notification ${notificationId} non trouvée`))
       }),
     )
   }
 
   // Marquer une notification de message comme lue
   markMessageNotificationAsRead(notificationId: string | number): Observable<MessageNotification> {
+    console.log(`Marquage de la notification de message ${notificationId} comme lue`)
+
     return this.http.patch<any>(`${this.apiUrl}/messages/${notificationId}/read`, {}).pipe(
-      map((data) => this.transformMessageNotifications([data])[0]),
+      map((data) => {
+        if (data && data.success && data.data) {
+          return this.transformMessageNotifications([data.data])[0]
+        } else if (data) {
+          return this.transformMessageNotifications([data])[0]
+        } else {
+          throw new Error("Format de réponse inattendu")
+        }
+      }),
       tap((updatedNotification) => {
+        console.log(`Notification de message ${notificationId} marquée comme lue avec succès`)
         const currentNotifications = this.messageNotificationsSubject.value
         const updatedNotifications = currentNotifications.map((n) =>
           n.id === notificationId ? { ...n, read: true } : n,
@@ -212,8 +290,9 @@ export class NotificationService {
           notification.read = true
           this.messageNotificationsSubject.next([...currentNotifications])
           this.updateUnreadMessageCount(currentNotifications)
+          return of({ ...notification, read: true } as MessageNotification)
         }
-        return of(notification as MessageNotification)
+        return throwError(() => new Error(`Notification ${notificationId} non trouvée`))
       }),
     )
   }
@@ -221,9 +300,11 @@ export class NotificationService {
   // Marquer toutes les notifications académiques comme lues
   markAllAcademicNotificationsAsRead(userId: string, userType: "etudiant" | "enseignant"): Observable<any> {
     const queryParam = userType === "etudiant" ? "etudiantId" : "enseignantId"
+    console.log(`Marquage de toutes les notifications académiques comme lues pour ${queryParam}=${userId}`)
 
     return this.http.patch<any>(`${this.apiUrl}/academic/read-all?${queryParam}=${userId}`, {}).pipe(
-      tap(() => {
+      tap((response) => {
+        console.log("Toutes les notifications académiques marquées comme lues:", response)
         const currentNotifications = this.academicNotificationsSubject.value
         const updatedNotifications = currentNotifications.map((n) => ({ ...n, read: true }))
         this.academicNotificationsSubject.next(updatedNotifications)
@@ -244,9 +325,11 @@ export class NotificationService {
   // Marquer toutes les notifications de messages comme lues
   markAllMessageNotificationsAsRead(userId: string, userType: "etudiant" | "enseignant"): Observable<any> {
     const queryParam = userType === "etudiant" ? "etudiantId" : "enseignantId"
+    console.log(`Marquage de toutes les notifications de messages comme lues pour ${queryParam}=${userId}`)
 
     return this.http.patch<any>(`${this.apiUrl}/messages/read-all?${queryParam}=${userId}`, {}).pipe(
-      tap(() => {
+      tap((response) => {
+        console.log("Toutes les notifications de messages marquées comme lues:", response)
         const currentNotifications = this.messageNotificationsSubject.value
         const updatedNotifications = currentNotifications.map((n) => ({ ...n, read: true }))
         this.messageNotificationsSubject.next(updatedNotifications)
@@ -269,16 +352,18 @@ export class NotificationService {
    * @param notification Les informations de notification
    */
   notifyTeacherAboutQuizSubmission(notification: {
-    enseignantId: string;
-    etudiantId: string;
-    etudiantName: string;
-    quizId: string;
-    quizTitle: string;
-    score: number;
-    dateCompletion: Date;
+    enseignantId: string
+    etudiantId: string
+    etudiantName: string
+    quizId: string
+    quizTitle: string
+    score: number
+    dateCompletion: Date
   }): Observable<any> {
-    console.log(`NotificationService.notifyTeacherAboutQuizSubmission - Notification à l'enseignant ${notification.enseignantId}`);
-    
+    console.log(
+      `NotificationService.notifyTeacherAboutQuizSubmission - Notification à l'enseignant ${notification.enseignantId}`,
+    )
+
     // Créer une notification académique de type soumission
     const notificationData: Partial<AcademicNotification> = {
       type: "soumission",
@@ -289,156 +374,119 @@ export class NotificationService {
       contenuId: notification.quizId,
       linkedId: notification.quizId,
       etudiantId: notification.etudiantId,
-      enseignantId: notification.enseignantId
-    };
-    
+      enseignantId: notification.enseignantId,
+    }
+
     return this.http.post<any>(`${this.apiUrl}/academic`, notificationData).pipe(
-      tap(response => {
-        console.log("Notification à l'enseignant envoyée:", response);
-        
+      tap((response) => {
+        console.log("Notification à l'enseignant envoyée:", response)
+
         // Si l'enseignant est actuellement connecté, mettre à jour ses notifications
         if (response) {
-          const currentNotifications = this.academicNotificationsSubject.value;
-          const newNotification = this.transformAcademicNotifications([response])[0];
-          this.academicNotificationsSubject.next([newNotification, ...currentNotifications]);
-          this.updateUnreadAcademicCount([newNotification, ...currentNotifications]);
+          const currentNotifications = this.academicNotificationsSubject.value
+          let newNotification: AcademicNotification
+
+          if (response.success && response.data) {
+            newNotification = this.transformAcademicNotifications([response.data])[0]
+          } else {
+            newNotification = this.transformAcademicNotifications([response])[0]
+          }
+
+          this.academicNotificationsSubject.next([newNotification, ...currentNotifications])
+          this.updateUnreadAcademicCount([newNotification, ...currentNotifications])
         }
       }),
-      catchError(error => {
-        console.error("Erreur lors de l'envoi de la notification à l'enseignant:", error);
-        
-        // En cas d'erreur, créer une notification locale pour les tests
-        const mockNotification: AcademicNotification = {
-          id: `soumission-${Date.now()}`,
-          type: "soumission",
-          title: `Quiz soumis: ${notification.quizTitle}`,
-          message: `L'étudiant ${notification.etudiantName} a soumis le quiz "${notification.quizTitle}" avec un score de ${notification.score}%.`,
-          date: new Date(),
-          read: false,
-          contenuId: notification.quizId,
-          linkedId: notification.quizId,
-          etudiantId: notification.etudiantId,
-          enseignantId: notification.enseignantId
-        };
-        
-        return of(mockNotification);
-      })
-    );
+      catchError((error) => {
+        console.error("Erreur lors de l'envoi de la notification à l'enseignant:", error)
+        return throwError(() => new Error("Erreur lors de l'envoi de la notification"))
+      }),
+    )
   }
 
-  // Générer des notifications académiques simulées pour les tests
-  generateMockAcademicNotifications(userId: string): AcademicNotification[] {
-    const types: ("cours" | "devoir" | "quiz" | "soumission")[] = ["cours", "devoir", "quiz", "soumission"]
-    const now = new Date()
+  /**
+   * Notifie un étudiant qu'un enseignant a évalué son devoir
+   */
+  notifyStudentAboutAssignmentGraded(notification: {
+    etudiantId: string
+    enseignantId: string
+    enseignantName: string
+    devoirId: string
+    devoirTitle: string
+    note: number
+    commentaire: string
+  }): Observable<any> {
+    console.log(
+      `NotificationService.notifyStudentAboutAssignmentGraded - Notification à l'étudiant ${notification.etudiantId}`,
+    )
 
-    const mockNotifications: AcademicNotification[] = []
-
-    for (let i = 0; i < 5; i++) {
-      const daysAgo = i % 3 // 0, 1 ou 2 jours
-      const date = new Date(now)
-      date.setDate(date.getDate() - daysAgo)
-
-      const type = types[i % types.length]
-      const read = i > 2 // Les 3 premières sont non lues
-      const contentId = `content-${i + 1}`
-
-      mockNotifications.push({
-        id: `academic-${i + 1}`,
-        type,
-        title: this.getMockAcademicTitle(type, i),
-        message: this.getMockAcademicMessage(type, i),
-        date,
-        read,
-        contenuId: contentId,
-        linkedId: contentId, // Ajout de la propriété manquante
-        etudiantId: userId,
-      })
+    // Créer une notification académique de type soumission
+    const notificationData: Partial<AcademicNotification> = {
+      type: "soumission",
+      title: `Devoir évalué: ${notification.devoirTitle}`,
+      message: `L'enseignant ${notification.enseignantName} a évalué votre devoir "${notification.devoirTitle}" avec une note de ${notification.note}/20.`,
+      date: new Date(),
+      read: false,
+      contenuId: notification.devoirId,
+      linkedId: notification.devoirId,
+      etudiantId: notification.etudiantId,
+      enseignantId: notification.enseignantId,
     }
 
-    return mockNotifications
+    return this.http.post<any>(`${this.apiUrl}/academic`, notificationData).pipe(
+      tap((response) => {
+        console.log("Notification à l'étudiant envoyée:", response)
+      }),
+      catchError((error) => {
+        console.error("Erreur lors de l'envoi de la notification à l'étudiant:", error)
+        return throwError(() => new Error("Erreur lors de l'envoi de la notification"))
+      }),
+    )
   }
 
-  // Générer des notifications de messages simulées pour les tests
-  generateMockMessageNotifications(userId: string): MessageNotification[] {
-    const now = new Date()
+  /**
+   * Crée une notification pour un nouveau message dans le forum
+   */
+  createMessageNotification(notification: {
+    destinataireId: string
+    destinataireType: "etudiant" | "enseignant"
+    expediteurId: string
+    expediteurNom: string
+    messageId: string
+    sujetId: string
+    sujetTitre: string
+    message: string
+  }): Observable<any> {
+    console.log(
+      `NotificationService.createMessageNotification - Notification à ${notification.destinataireType} ${notification.destinataireId}`,
+    )
 
-    const mockNotifications: MessageNotification[] = []
-
-    for (let i = 0; i < 5; i++) {
-      const daysAgo = i % 3 // 0, 1 ou 2 jours
-      const date = new Date(now)
-      date.setDate(date.getDate() - daysAgo)
-
-      const read = i > 1 // Les 2 premières sont non lues
-      const messageId = `message-${i + 1}`
-
-      mockNotifications.push({
-        id: `message-${i + 1}`,
-        type: "message",
-        title: `Nouveau message dans "${this.getMockForumTopic(i)}"`,
-        message: `${this.getMockSenderName(i)} a répondu à votre message dans la discussion "${this.getMockForumTopic(i)}"`,
-        date,
-        read,
-        expediteurId: `user-${i + 10}`,
-        expediteurNom: this.getMockSenderName(i),
-        sujetId: `topic-${i + 1}`,
-        sujetTitre: this.getMockForumTopic(i),
-        messageId: messageId, // Ajout de la propriété manquante
-      })
+    // Créer les données de notification
+    const notificationData: any = {
+      title: `Nouveau message dans "${notification.sujetTitre}"`,
+      message: notification.message,
+      expediteurId: notification.expediteurId,
+      expediteurNom: notification.expediteurNom,
+      messageId: notification.messageId,
+      sujetId: notification.sujetId,
+      sujetTitre: notification.sujetTitre,
+      read: false,
     }
 
-    return mockNotifications
-  }
-
-  private getMockAcademicTitle(type: string, index: number): string {
-    switch (type) {
-      case "cours":
-        return `Nouveau chapitre disponible (${index + 1})`
-      case "devoir":
-        return `Devoir assigné (${index + 1})`
-      case "quiz":
-        return `Quiz disponible (${index + 1})`
-      case "soumission":
-        return `Devoir évalué (${index + 1})`
-      default:
-        return `Notification (${index + 1})`
+    // Ajouter le bon ID de destinataire selon le type
+    if (notification.destinataireType === "etudiant") {
+      notificationData.etudiantId = notification.destinataireId
+    } else {
+      notificationData.enseignantId = notification.destinataireId
     }
-  }
 
-  private getMockAcademicMessage(type: string, index: number): string {
-    switch (type) {
-      case "cours":
-        return `Le chapitre ${index + 1} du cours est maintenant disponible.`
-      case "devoir":
-        return `Un nouveau devoir a été assigné, à rendre avant le ${this.getFutureDate(7)}.`
-      case "quiz":
-        return `Un nouveau quiz est disponible jusqu'au ${this.getFutureDate(3)}.`
-      case "soumission":
-        return `Votre devoir a été évalué. Note: ${15 + index}/20.`
-      default:
-        return `Contenu de la notification ${index + 1}.`
-    }
-  }
-
-  private getMockSenderName(index: number): string {
-    const names = ["Ahmed Ben Ali", "Fatima Trabelsi", "Mohamed Sassi", "Leila Gharbi", "Karim Bouzid"]
-    return names[index % names.length]
-  }
-
-  private getMockForumTopic(index: number): string {
-    const topics = [
-      "Questions sur le TP1",
-      "Problème avec l'exercice 3",
-      "Date de l'examen final",
-      "Documentation du projet",
-      "Ressources supplémentaires",
-    ]
-    return topics[index % topics.length]
-  }
-
-  private getFutureDate(days: number): string {
-    const date = new Date()
-    date.setDate(date.getDate() + days)
-    return date.toLocaleDateString("fr-FR")
+    return this.http.post<any>(`${this.apiUrl}/messages`, notificationData).pipe(
+      tap((response) => {
+        console.log("Notification de message envoyée:", response)
+      }),
+      catchError((error) => {
+        console.error("Erreur lors de l'envoi de la notification de message:", error)
+        return throwError(() => new Error("Erreur lors de l'envoi de la notification de message"))
+      }),
+    )
   }
 }

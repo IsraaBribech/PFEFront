@@ -1,9 +1,9 @@
 <!-- cours.component.html -->
 <div class="cours-container">
   <div class="cours-header">
-    <h1>Gestion des Cours</h1>
+    <h1>Gestion des Matières</h1>
     <button class="btn-add" (click)="toggleAddForm()">
-      <i class="fas fa-plus"></i> Ajouter un cours
+      <i class="fas fa-plus"></i> Ajouter une matière
     </button>
   </div>
 
@@ -41,7 +41,7 @@
   <!-- Formulaire d'ajout -->
   <div class="add-form-overlay" *ngIf="showAddForm">
     <div class="add-form">
-      <h2>Ajouter un nouveau cours</h2>
+      <h2>Ajouter une nouvelle matière</h2>
       
       <div class="form-group">
         <label>Titre <span class="required">*</span></label>
@@ -155,15 +155,15 @@
   <!-- Liste des cours avec détails -->
   <div class="cours-list" *ngIf="!showAddForm">
     <div *ngIf="loadingCours" class="loading-indicator">
-      Chargement des cours...
+      Chargement des matières...
     </div>
     
     <div *ngIf="!loadingCours && coursAvecDetails.length === 0" class="empty-state">
       <div class="empty-state-content">
         <i class="fas fa-book-open"></i>
-        <p>Aucun cours disponible pour le moment.</p>
+        <p>Aucune matière disponible pour le moment.</p>
         <button class="btn-add-empty" (click)="toggleAddForm()">
-          <i class="fas fa-plus"></i> Ajouter votre premier cours
+          <i class="fas fa-plus"></i> Ajouter votre premiere matière
         </button>
       </div>
     </div>
@@ -171,7 +171,7 @@
     <div *ngIf="!loadingCours && filteredCours.length === 0 && coursAvecDetails.length > 0" class="empty-state">
       <div class="empty-state-content">
         <i class="fas fa-filter"></i>
-        <p>Aucun cours ne correspond à vos critères de recherche.</p>
+        <p>Aucune matière ne correspond à vos critères de recherche.</p>
         <button class="btn-reset-filter" (click)="resetFilters()">
           <i class="fas fa-times"></i> Réinitialiser les filtres
         </button>
@@ -225,7 +225,7 @@
 <!-- Edit Form -->
 <div class="add-form-overlay" *ngIf="showEditForm">
   <div class="add-form">
-    <h2>Modifier le cours</h2>
+    <h2>Modifier la matière</h2>
     
     <div class="form-group">
       <label>Titre <span class="required">*</span></label>
@@ -286,7 +286,7 @@
         [ngClass]="{'invalid-input': !courseToEdit.seance && formSubmitted}"
       >
         <option value="">Sélectionner une séance</option>
-        <option value="Cours">Cours</option>
+        <option value="Cours">Cour</option>
         <option value="TD">TD</option>
         <option value="TP">TP</option>
       </select>
@@ -324,7 +324,7 @@
       <button class="btn-cancel" (click)="cancelEdit()">Annuler</button>
       <button class="btn-save" (click)="saveEditedCours()" [disabled]="submitting">
         <span *ngIf="!submitting">Enregistrer</span>
-        <span *ngIf="submitting">Enregistrement en cours...</span>
+        <span *ngIf="submitting">Enregistrement en cour ...</span>
       </button>
     </div>
     

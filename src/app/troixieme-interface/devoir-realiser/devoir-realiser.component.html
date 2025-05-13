@@ -252,14 +252,14 @@
                     <td>
                       <div class="action-buttons">
                         <button class="btn-action btn-submit" [disabled]="devoir.soumis" (click)="openSoumissionModal(devoir)">
-                          <i class="fas" [ngClass]="devoir.soumis ? 'fa-check' : 'fa-paper-plane'"></i>
-                          <span>{{ devoir.soumis ? 'Soumis' : 'Soumettre' }}</span>
+                         <i class="fas" [ngClass]="devoir.soumis ? 'fa-check' : 'fa-paper-plane'"></i>
+                         <span>{{ devoir.soumis ? 'Soumis' : 'Soumettre' }}</span>
                         </button>
-                        <a [href]="devoir.fichierConsigne" target="_blank" class="btn-action btn-download">
-                          <i class="fas fa-download"></i>
-                          <span>Télécharger</span>
-                        </a>
-                      </div>
+                      <button class="btn-action btn-download" (click)="telechargerFichier(devoir)">
+                      <i class="fas fa-download"></i>
+                      <span>Télécharger</span>
+                      </button>
+                       </div>
                     </td>
                   </tr>
                 </tbody>

@@ -294,7 +294,39 @@
 .sidebar-nav ul li.active i {
   color: var(--primary-color);
 }
+.logo {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
 
+.logo-img {
+  height: 40px;
+  margin-right: 10px;
+}
+
+.logo-text {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+/* Ajoutez ces styles pour le conteneur EduLink et le texte */
+.edulink-container {
+  display: flex;
+  align-items: center;
+  margin-top: 15px;
+}
+
+.logo-img {
+  height: 40px;
+  margin-right: 10px;
+}
+
+.edulink-text {
+  font-size: 1.25rem;
+  font-weight: 700; /* Texte en gras */
+  color: #000000;
+}
 /* Main Content Styles */
 .main-content {
   flex: 1;

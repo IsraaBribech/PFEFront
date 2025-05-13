@@ -61,10 +61,51 @@
         <h1>{{ getCurrentPageTitle() }}</h1>
       </div>
       <div class="header-actions">
-        <div class="search-bar">
-          <i class="fas fa-search"></i>
-          <input type="text" placeholder="Rechercher...">
+        <!-- Barre de recherche avec suggestions -->
+        <div class="search-bar-container">
+          <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input 
+              type="text" 
+              placeholder="Rechercher..." 
+              [(ngModel)]="searchQuery" 
+              (input)="onSearchInput()"
+              (focus)="showSearchResults = true"
+              (keydown.enter)="navigateToFirstResult()"
+              (keydown.arrowdown)="selectNextResult()"
+              (keydown.arrowup)="selectPreviousResult()"
+            >
+            <i *ngIf="searchQuery" class="fas fa-times clear-search" (click)="clearSearch()"></i>
+          </div>
+          
+          <!-- Résultats de recherche -->
+          <div class="search-results" *ngIf="showSearchResults && searchQuery && filteredSearchResults.length > 0">
+            <div 
+              *ngFor="let result of filteredSearchResults; let i = index" 
+              class="search-result-item" 
+              [class.active]="i === selectedResultIndex"
+              (click)="navigateToResult(result)"
+              (mouseenter)="selectedResultIndex = i"
+            >
+              <div class="search-result-icon" [ngClass]="result.type">
+                <i [class]="'fas ' + getSearchResultIcon(result.type)"></i>
+              </div>
+              <div class="search-result-content">
+                <div class="search-result-title">{{ result.title }}</div>
+                <div class="search-result-category">{{ getCategoryLabel(result.type) }}</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Message quand aucun résultat n'est trouvé -->
+          <div class="search-results no-results" *ngIf="showSearchResults && searchQuery && filteredSearchResults.length === 0">
+            <div class="no-results-message">
+              <i class="fas fa-search"></i>
+              <p>Aucun résultat trouvé pour "{{ searchQuery }}"</p>
+            </div>
+          </div>
         </div>
+        
         <!-- Notification avec dropdown - Toujours visible -->
         <div class="notification-wrapper">
           <div class="notification-btn" (click)="toggleNotificationDropdown($event)">
@@ -291,3 +332,6 @@
     <router-outlet *ngIf="!isHomePage()"></router-outlet>
   </div>
 </div>
+
+<!-- Clic en dehors pour fermer les résultats de recherche -->
+<div class="search-overlay" *ngIf="showSearchResults" (click)="showSearchResults = false"></div>
